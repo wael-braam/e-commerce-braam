@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<!--
+  BRÂAM · Pilotage Acquisition — DASHBOARD (v5, multi-pages)
+  • Pages : Vue d'ensemble / Canaux / Tendances / Produits (live).
+  • Données live depuis le Sheet publié (CONFIG.CSV_URL) ; repli sur données intégrées.
+  • Police Tropiline : dépose tes .woff2 dans /fonts et décommente le bloc @font-face.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brâam — Pilotage e-commerce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  /* ===== Police Tropiline (dépose tes fichiers et décommente) ===== */
+  /* @font-face{font-family:'Tropiline';src:url('fonts/Tropiline-Regular.woff2') format('woff2');font-weight:400;font-display:swap} */
+
+  :root{
+    --bg:#f5ede4;--card:#fff;
+    --teal:#025964;--teal2:#013e47;--teal-lt:#eaf4f4;
+    --ink:#1c2d2f;--ink2:#3a4c4e;--muted:#8a8078;--subtle:#b0a69d;
+    --line:#e5dad0;--line2:#ede5dc;
+    --coral:#e07060;--coral-lt:#fdf1ee;
+    --sand:#e8c06a;--mint:#90c8b8;
+    --disp:'Tropiline','Fraunces',Georgia,serif;
+    --body:'Hanken Grotesk',system-ui,sans-serif;
+    --r:18px;--r-sm:11px;
+    --sh:0 2px 6px rgba(2,89,100,.05),0 14px 36px -18px rgba(2,89,100,.13);
+    --sh-sm:0 1px 3px rgba(2,89,100,.04),0 6px 20px -14px rgba(2,89,100,.10);
+  }
+
+  [data-theme="dark"]{
+    --bg:#0e1c1b;--card:#1a2a29;
+    --teal:#1dd4b0;--teal2:#16b898;--teal-lt:rgba(29,212,176,.1);
+    --ink:#e8e2db;--ink2:#b0a89f;--muted:#6e6660;--subtle:#4a4440;
+    --line:#25403e;--line2:#1f3130;
+    --coral:#ff6b52;--coral-lt:rgba(255,107,82,.12);
+    --sand:#e8c06a;--mint:#1dd4b0;
+    --sh:0 2px 8px rgba(0,0,0,.3),0 16px 40px -20px rgba(0,0,0,.4);
+    --sh-sm:0 1px 4px rgba(0,0,0,.2),0 8px 24px -16px rgba(0,0,0,.3);
+  }
+  [data-theme="dark"] body{background:var(--bg);color:var(--ink)}
+  [data-theme="dark"] body::before{background:radial-gradient(circle,rgba(29,212,176,.04) 0%,transparent 68%)}
+  [data-theme="dark"] .panel,[data-theme="dark"] .kpi,[data-theme="dark"] .reco,
+  [data-theme="dark"] .read,[data-theme="dark"] .controls,[data-theme="dark"] .yearcard,
+  [data-theme="dark"] .mpcard,[data-theme="dark"] .brandcard,[data-theme="dark"] .fact{background:var(--card)}
+  [data-theme="dark"] .segcard.b2c{background:rgba(255,107,82,.1);border-color:rgba(255,107,82,.2)}
+  [data-theme="dark"] .segcard.b2b{background:rgba(29,212,176,.1);border-color:rgba(29,212,176,.2)}
+  [data-theme="dark"] .fact{background:rgba(29,212,176,.07);border-color:rgba(29,212,176,.12)}
+  [data-theme="dark"] .mpkpi,[data-theme="dark"] .brandkpi{background:#192726;border-color:var(--line)}
+  [data-theme="dark"] select.sel,[data-theme="dark"] input[type=date],
+  [data-theme="dark"] select.mini,[data-theme="dark"] select.cat-sel{
+    background:var(--card);color:var(--ink);border-color:var(--line);color-scheme:dark}
+  [data-theme="dark"] .prow:hover,[data-theme="dark"] .catprow:hover,[data-theme="dark"] .famrow:hover{background:#192726}
+  [data-theme="dark"] .prow:nth-child(even),[data-theme="dark"] .catprow:nth-child(even){background:rgba(255,255,255,.02)}
+  body{transition:background .3s,color .3s}
+  .theme-btn{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:5px 13px 5px 10px;cursor:pointer;font:inherit;font-size:11.5px;
+    font-weight:600;color:var(--muted);transition:border-color .15s,color .15s}
+  .theme-btn:hover{border-color:var(--teal);color:var(--teal)}
+  .tt-track{width:30px;height:17px;border-radius:999px;background:var(--line2);position:relative;
+    transition:background .25s;flex:0 0 auto}
+  .tt-track.on{background:var(--teal)}
+  .tt-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;
+    background:#fff;transition:transform .25s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .tt-track.on .tt-thumb{transform:translateX(13px)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  .period-notice{display:flex;align-items:center;gap:8px;background:var(--teal-lt);
+    border:1px solid rgba(2,89,100,.15);border-radius:var(--r-sm);
+    padding:10px 14px;font-size:12.5px;color:var(--teal2);margin-bottom:18px;line-height:1.4}
+  .period-notice span{font-size:15px;flex:0 0 auto}
+  body{font-family:var(--body);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;
+    background:var(--bg);min-height:100vh;padding-bottom:64px}
+  body::before{content:"";position:fixed;top:-120px;right:-120px;width:600px;height:600px;
+    background:radial-gradient(circle,rgba(2,89,100,.06) 0%,transparent 68%);
+    pointer-events:none;z-index:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+  .muted{color:var(--muted)} .up{color:var(--teal)} .down{color:var(--coral)}
+  .eyebrow{font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--subtle);font-weight:600}
+
+  /* Header */
+  header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+    padding:24px 0 20px;border-bottom:1px solid var(--line)}
+  .hleft{display:flex;align-items:center;gap:18px}
+  .logo{height:42px;width:auto;display:block}
+  .wordmark{font-family:var(--disp);font-weight:800;font-size:27px;color:var(--teal);letter-spacing:.03em}
+  .wordmark span{color:var(--coral)}
+  .hsep{width:1px;height:36px;background:var(--line)}
+  .htitle{font-family:var(--disp);font-weight:500;font-size:17px;color:var(--ink2);line-height:1.15}
+  .htitle small{display:block;font-family:var(--body);font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.2em;color:var(--subtle);margin-top:3px}
+  #src{font-size:11px;font-weight:600;color:var(--teal);background:#fff;
+    border:1px solid var(--line);padding:5px 13px;border-radius:999px;letter-spacing:.02em;box-shadow:var(--sh-sm)}
+  #src.live{color:#fff;background:var(--teal);border-color:var(--teal)}
+  #src.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:#7dd4c0;margin-right:6px;vertical-align:middle;
+    animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+
+  /* Onglets */
+  .tabs{display:flex;gap:0;margin:20px 0 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{font:inherit;font-weight:600;font-size:13px;color:var(--subtle);background:none;border:0;
+    border-bottom:2px solid transparent;padding:11px 17px;cursor:pointer;white-space:nowrap;
+    transition:color .2s,border-color .2s,background .2s;margin-bottom:-1px;letter-spacing:.01em;border-radius:8px 8px 0 0}
+  .tab:hover{color:var(--teal);background:rgba(2,89,100,.04)}
+  .tab.active{color:var(--teal);border-bottom-color:var(--teal);background:rgba(2,89,100,.05)}
+  .page{padding-top:22px}
+
+  /* Controls */
+  .controls{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    background:#fff;border:1px solid var(--line2);border-radius:var(--r);
+    padding:15px 20px;box-shadow:var(--sh-sm);margin-bottom:6px}
+  .ctl{display:flex;flex-direction:column;gap:5px}
+  .ctl-row{display:flex;align-items:center;gap:8px}
+  .selw{position:relative;display:inline-block}
+  .selw::after{content:"▾";position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    color:var(--teal);pointer-events:none;font-size:10px}
+  select.sel{appearance:none;-webkit-appearance:none;font:inherit;font-weight:600;font-size:13px;
+    color:var(--teal);background:#fff;border:1.5px solid var(--line);border-radius:var(--r-sm);
+    padding:8px 36px 8px 13px;cursor:pointer;min-width:200px;transition:border-color .15s}
+  select.sel:hover,select.sel:focus{outline:none;border-color:var(--teal)}
+  input[type=date]{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1.5px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;cursor:pointer}
+  input[type=date]:focus{outline:none;border-color:var(--teal)}
+  .periodlbl{font-size:12px;color:var(--muted);margin:10px 0 18px}
+  .periodlbl b{color:var(--teal);font-weight:600}
+
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:16px}
+  .kpi{position:relative;background:#fff;border:1px solid var(--line2);border-radius:var(--r);
+    padding:20px 20px 16px;box-shadow:var(--sh-sm);overflow:hidden;
+    transition:transform .2s cubic-bezier(.25,.46,.45,.94),box-shadow .2s}
+  .kpi:hover{transform:translateY(-3px);box-shadow:var(--sh)}
+  .kpi::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--teal),#0a8a9a);border-radius:var(--r) var(--r) 0 0}
+  .kpi.coral::after{background:linear-gradient(90deg,var(--coral),#f0907e)}
+  .kpi .lab{font-size:10px;text-transform:uppercase;letter-spacing:.17em;color:var(--subtle);font-weight:600}
+  .kpi[data-tip]{cursor:default}
+  .kpi[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;
+    transform:translateX(-50%);background:var(--ink);color:#fff;font-size:11px;font-weight:500;
+    padding:6px 11px;border-radius:8px;white-space:nowrap;pointer-events:none;z-index:99;
+    box-shadow:0 4px 12px rgba(0,0,0,.2);font-family:var(--body);text-transform:none;letter-spacing:0;line-height:1.4}
+  .kpi[data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;
+    transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--ink);pointer-events:none;z-index:99}
+  .kpi .val{font-family:var(--disp);font-weight:600;font-size:32px;color:var(--teal2);
+    margin-top:10px;line-height:1;letter-spacing:-.01em}
+  .kpi .delta{font-size:12px;font-weight:600;margin-top:10px;display:flex;align-items:center;gap:4px}
+  .kpi .delta .vp{color:var(--subtle);font-weight:500}
+
+  /* Panels */
+  .panel{background:#fff;border:1px solid var(--line2);border-radius:var(--r);
+    padding:24px;box-shadow:var(--sh-sm);margin-bottom:16px;transition:box-shadow .2s}
+  .panel:hover{box-shadow:var(--sh)}
+  .panel h2{font-family:var(--disp);font-weight:600;font-size:16.5px;color:var(--teal2);margin-bottom:3px}
+  .panel .hint{font-size:11px;color:var(--subtle);margin-bottom:18px;line-height:1.45}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  /* Canal répartition */
+  .repart{display:flex;gap:28px;align-items:flex-start}
+  .donutwrap{flex:0 0 205px;height:205px;position:relative}
+  .rtable{flex:1;min-width:0}
+  .rtotal{display:flex;flex-direction:column;gap:2px;padding-bottom:12px;margin-bottom:9px;border-bottom:1px solid var(--line)}
+  .rtotal-val{font-family:var(--disp);font-size:30px;font-weight:600;color:var(--teal2);line-height:1}
+  .row{display:grid;grid-template-columns:170px 1fr 100px 60px;gap:11px;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--line2)}
+  .row:last-child{border-bottom:0}
+  .ch{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;color:var(--ink)}
+  .dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+  .barwrap{background:var(--line2);border-radius:6px;height:7px;overflow:hidden}
+  .bar{height:100%;border-radius:6px}
+  .ca{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;color:var(--teal2)}
+  .tr{text-align:right;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums}
+
+  /* YoY */
+  .yoyrow{display:grid;grid-template-columns:1fr auto auto auto;gap:13px;align-items:baseline;
+    padding:12px 0;border-bottom:1px solid var(--line2)}
+  .yoyrow:last-child{border-bottom:0}
+  .yl{font-size:13px;font-weight:600;color:var(--ink2)}
+  .yv{font-family:var(--disp);font-size:21px;font-weight:600;color:var(--teal2);
+    text-align:right;font-variant-numeric:tabular-nums}
+  .yv small{display:block;font-family:var(--body);font-size:10px;font-weight:500;color:var(--subtle)}
+  .yd{font-size:12px;font-weight:700;text-align:right;min-width:54px;font-variant-numeric:tabular-nums}
+  .aovrow{display:grid;grid-template-columns:150px 1fr 86px;gap:11px;align-items:center;
+    padding:9px 0;border-bottom:1px solid var(--line2)}
+  .aovrow:last-child{border-bottom:0}
+  .aovrow .nm{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink)}
+  .aovrow .vv{text-align:right;font-weight:700;color:var(--teal2);font-variant-numeric:tabular-nums;font-size:13px}
+
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+  .fact{background:var(--teal-lt);border:1px solid rgba(2,89,100,.09);border-radius:13px;padding:15px 16px}
+  .fact .fl{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:var(--teal);font-weight:600}
+  .fact .fv{font-family:var(--disp);font-size:21px;font-weight:600;color:var(--teal2);margin-top:7px;line-height:1}
+  .fact .fs{font-size:11px;color:var(--muted);margin-top:4px}
+
+  /* Charts */
+  .evo{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+  .chart-head .ct{font-family:var(--disp);font-weight:600;font-size:15px;color:var(--teal2)}
+  .mini-wrap{position:relative;display:inline-block}
+  .mini-wrap::after{content:"▾";position:absolute;right:9px;top:50%;transform:translateY(-50%);
+    color:var(--teal);pointer-events:none;font-size:10px}
+  select.mini{appearance:none;-webkit-appearance:none;font:inherit;font-size:11.5px;font-weight:600;
+    color:var(--teal);background:#fff;border:1.5px solid var(--line);border-radius:9px;
+    padding:5px 24px 5px 10px;cursor:pointer}
+  select.mini:hover,select.mini:focus{outline:none;border-color:var(--teal)}
+  .chartbox{height:210px;position:relative}
+  .chartbox-lg{height:285px;position:relative}
+
+  /* Lecture / Recos */
+  .read{background:#fff;border:1px solid var(--line2);border-left:3px solid var(--teal);
+    border-radius:var(--r);padding:20px 24px;box-shadow:var(--sh-sm);margin-bottom:16px}
+  .read h2{font-family:var(--disp);font-size:15.5px;color:var(--teal2);margin-bottom:11px;font-weight:600}
+  .read li{list-style:none;padding:9px 0 9px 24px;position:relative;font-size:13px;
+    border-bottom:1px solid var(--line2);color:var(--ink2);line-height:1.5}
+  .read li:last-child{border-bottom:0}
+  .read li::before{content:"→";position:absolute;left:0;color:var(--coral);font-weight:700}
+  .read b{color:var(--teal2);font-weight:700}
+
+  .recos-block{margin-bottom:16px}
+  .recos-block h2{font-family:var(--disp);font-size:16.5px;color:var(--teal2);margin-bottom:2px}
+  .rhint{font-size:11px;color:var(--subtle);margin-bottom:13px}
+  .recos{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .reco{background:#fff;border:1px solid var(--line2);border-radius:var(--r);padding:19px;
+    box-shadow:var(--sh-sm);display:flex;gap:13px;align-items:flex-start;
+    transition:transform .15s,box-shadow .15s}
+  .reco:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+  .reco .rnum{flex:0 0 30px;height:30px;border-radius:50%;background:var(--teal);color:#fff;
+    font-family:var(--disp);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .reco .rt{font-weight:700;color:var(--teal2);font-size:13.5px;margin-bottom:5px;line-height:1.3}
+  .reco .rd{font-size:12px;color:var(--ink2);line-height:1.48}
+
+  /* Produits */
+  .segwrap{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+  .segdonut{flex:0 0 188px;height:188px;position:relative}
+  .segcards{flex:1;min-width:230px;display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .segcard{border-radius:14px;padding:18px 20px;position:relative;overflow:hidden}
+  .segcard.b2c{background:linear-gradient(135deg,#fff5f3,#fff);border:1px solid rgba(224,112,96,.2)}
+  .segcard.b2b{background:linear-gradient(135deg,#edf7f6,#fff);border:1px solid rgba(2,89,100,.15)}
+  .segcard::before{content:"";position:absolute;right:-18px;top:-18px;width:80px;height:80px;border-radius:50%;opacity:.08}
+  .segcard.b2c::before{background:var(--coral)}
+  .segcard.b2b::before{background:var(--teal)}
+  .segcard .sct{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--ink2)}
+  .segcard .scv{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--teal2);margin-top:9px;line-height:1}
+  .segcard .scs{font-size:11px;color:var(--muted);margin-top:5px}
+  .famrow{display:grid;grid-template-columns:148px 1fr 96px;gap:12px;align-items:center;
+    padding:12px 10px;border-radius:9px;margin-bottom:2px;transition:background .12s}
+  .famrow:hover{background:var(--bg)}
+  .famrow .fl{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--ink)}
+  .famrow .fsub{font-size:10px;color:var(--subtle);margin-top:3px}
+  .prow{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;
+    padding:9px 10px;border-radius:8px;margin-bottom:1px;transition:background .12s}
+  .prow:hover{background:var(--bg)}
+  .prow:nth-child(even){background:rgba(2,89,100,.025)}
+  .prow:nth-child(even):hover{background:var(--bg)}
+  .prk{font-family:var(--disp);font-weight:700;color:var(--coral);font-size:13px;text-align:center}
+  .pnm{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pval{text-align:right;font-weight:700;color:var(--teal2);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+  .pseg{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    padding:1px 5px;border-radius:4px;margin-left:5px;vertical-align:middle}
+  .pseg.b2b{background:#dbeee9;color:var(--teal)}.pseg.b2c{background:var(--coral-lt);color:#a04535}
+
+  /* Marques */
+  .brandgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0}
+  .brandcard{background:#fff;border:1px solid var(--line2);border-radius:var(--r);
+    padding:22px;box-shadow:var(--sh-sm);border-top:3px solid var(--brand-acc,var(--teal))}
+  .brandcard.delonghi-card{--brand-acc:#c41e26}
+  .brandcard.jura-card{--brand-acc:#2a2a2a}
+  .brandcard .bhead{display:flex;align-items:center;justify-content:space-between;
+    padding-bottom:13px;margin-bottom:16px;border-bottom:1px solid var(--line2)}
+  .brandcard .blogo{font-family:var(--disp);font-weight:800;font-size:18px;letter-spacing:.02em}
+  .brandcard .blogo.delonghi{color:#c41e26}
+  .brandcard .blogo.jura{color:#2a2a2a}
+  .bsub{font-size:10px;color:var(--subtle);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .brandcard .bkpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .brandkpi{background:var(--bg);border-radius:10px;padding:13px 14px;border:1px solid var(--line2)}
+  .brandkpi .bl{font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--subtle);font-weight:600}
+  .brandkpi .bv{font-family:var(--disp);font-size:21px;font-weight:600;color:var(--teal2);margin-top:6px;line-height:1}
+  .brandkpi .bs{font-size:10.5px;color:var(--muted);margin-top:3px}
+
+  /* Catalogue */
+  .bloc-sep{display:flex;align-items:center;gap:14px;margin:8px 0 16px}
+  .bloc-sep .bs-label{font-family:var(--disp);font-size:12px;font-weight:600;color:var(--subtle);
+    text-transform:uppercase;letter-spacing:.14em;white-space:nowrap}
+  .bloc-sep .bs-line{flex:1;height:1px;background:var(--line)}
+  .cat-filters{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+  .cat-filter-group{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
+  .cat-filters .fl-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--subtle);font-weight:600}
+  .cat-sel-wrap{position:relative}
+  .cat-sel-wrap::after{content:"▾";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--teal);pointer-events:none;font-size:11px}
+  select.cat-sel{appearance:none;-webkit-appearance:none;font:inherit;font-weight:600;font-size:13.5px;
+    color:var(--teal);background:#fff;border:1.5px solid var(--line);border-radius:12px;
+    padding:10px 38px 10px 14px;cursor:pointer;width:100%;transition:border-color .15s;box-shadow:var(--sh-sm)}
+  select.cat-sel:hover,select.cat-sel:focus{outline:none;border-color:var(--teal)}
+  .cat-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+  .cat-best{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .catprow{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;
+    padding:9px 10px;border-radius:8px;margin-bottom:1px;transition:background .12s}
+  .catprow:hover{background:var(--bg)}
+  .catprow:nth-child(even){background:rgba(2,89,100,.025)}
+  .catprow:nth-child(even):hover{background:var(--bg)}
+  .catprk{font-family:var(--disp);font-weight:700;color:var(--coral);font-size:13px;text-align:center}
+  .catpnm{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .catpval{text-align:right;font-weight:700;color:var(--teal2);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+  .cat-empty{text-align:center;padding:40px 20px;color:var(--subtle);font-size:13.5px}
+  @media(max-width:900px){.cat-filters{flex-direction:column}.cat-best{grid-template-columns:1fr}}
+
+  /* Marketplace */
+  .mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:0}
+  .mpcard{background:#fff;border:1px solid var(--line2);border-radius:var(--r);
+    padding:0;box-shadow:var(--sh-sm);overflow:hidden}
+  .mpcard-head{padding:18px 22px 14px;border-bottom:1px solid var(--line2);
+    display:flex;align-items:center;gap:12px}
+  .mp-logo{height:32px;width:auto;max-width:110px;object-fit:contain;flex:0 0 auto;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.08))}
+  .mpcard-head .mp-name{font-family:var(--disp);font-weight:700;font-size:16px;color:var(--teal2)}
+  .mpcard-head .mp-sub{font-size:10.5px;color:var(--subtle);margin-top:2px}
+  .mpcard-body{padding:16px 22px 18px}
+  .mp-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .mpkpi{background:var(--bg);border-radius:11px;padding:11px 13px;border:1px solid var(--line2)}
+  .mpkpi .mk{font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--subtle);font-weight:600}
+  .mpkpi .mv{font-family:var(--disp);font-size:20px;font-weight:600;color:var(--teal2);margin-top:5px;line-height:1}
+  .mpkpi .md{font-size:11px;font-weight:600;margin-top:4px}
+  .mpkpi .md.up{color:var(--teal)}.mpkpi .md.down{color:var(--coral)}.mpkpi .md.flat{color:var(--subtle)}
+  .mp-divider{height:1px;background:var(--line2);margin:12px 0}
+  .mp-toplist{display:flex;flex-direction:column;gap:0}
+  .mp-toprow{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center;
+    padding:7px 0;border-bottom:1px solid var(--line2);font-size:12px}
+  .mp-toprow:last-child{border-bottom:0}
+  .mp-rk{font-family:var(--disp);font-weight:700;color:var(--coral);font-size:12px;text-align:center}
+  .mp-nm{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mp-vl{font-weight:700;color:var(--teal2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .mp-empty{font-size:12px;color:var(--subtle);text-align:center;padding:20px 0}
+  @media(max-width:900px){.mp-grid{grid-template-columns:1fr}}
+
+  /* Comparaison */
+  .yearcard{background:#fff;border:1px solid var(--line2);border-top:3px solid var(--acc,var(--teal));
+    border-radius:var(--r);padding:20px 22px;box-shadow:var(--sh-sm);margin-bottom:14px}
+  .yearhead{display:flex;align-items:center;gap:12px;margin-bottom:3px}
+  .yearhead .yr{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--acc,var(--teal2))}
+  .yearhead .ylive{font-size:10px;font-weight:700;color:#fff;background:var(--acc,var(--teal));
+    padding:3px 11px;border-radius:999px;letter-spacing:.06em}
+  .yearnote{font-size:11px;color:var(--subtle);margin-bottom:16px}
+  .ykpis{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+  .ykpi{border-left:2px solid var(--acc,var(--line));padding-left:13px}
+  .ykpi .yl{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--subtle);
+    font-weight:600;min-height:22px;line-height:1.4}
+  .ykpi .yv{font-family:var(--disp);font-size:21px;font-weight:600;color:var(--teal2);
+    margin-top:7px;line-height:1}
+  .ykpi .yc{font-size:11px;font-weight:700;margin-top:7px}
+  .ykpi .yc.up{color:var(--teal)}.ykpi .yc.down{color:var(--coral)}.ykpi .yc.flat{color:var(--subtle)}
+
+  footer{margin-top:24px;font-size:11px;color:var(--subtle);text-align:center;padding-bottom:8px}
+
+  @media(max-width:900px){
+    .wrap{padding:0 16px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .recos,.brandgrid{grid-template-columns:1fr}
+    .grid2,.evo{grid-template-columns:1fr}
+    .facts{grid-template-columns:1fr 1fr}
+    .repart{flex-direction:column}
+    .donutwrap{flex:0 0 auto;width:100%;max-width:220px;margin:0 auto}
+    .segcards{grid-template-columns:1fr}.segdonut{margin:0 auto}
+    .controls{flex-direction:column;align-items:stretch;padding:13px 15px}
+    select.sel{min-width:0;width:100%}
+    .row{grid-template-columns:110px 1fr 80px 50px}
+    .aovrow{grid-template-columns:110px 1fr 70px}
+    .famrow{grid-template-columns:100px 1fr 76px}
+    .ykpis{grid-template-columns:1fr 1fr}
+    .tabs{gap:0;overflow-x:auto;scrollbar-width:none}.tab{padding:10px 11px;font-size:12px;white-space:nowrap}
+    .tabs::-webkit-scrollbar{display:none}
+    .mp-grid{grid-template-columns:1fr}.cat-best{grid-template-columns:1fr}
+  }
+  @media(max-width:480px){.kpis{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}}
+  @media print{
+    body{background:#fff;padding-bottom:0}
+    body::before{display:none}
+    header{padding:12px 0}
+    .tabs,.controls,.theme-btn,[onclick="window.print()"]{display:none!important}
+    .page{display:block!important}
+    .panel,.kpi,.read,.reco,.yearcard{box-shadow:none!important;break-inside:avoid}
+    footer{display:none}
+  }
+</style>
+
+
+<div class="wrap">
+  <header>
+    <div class="hleft">
+      <img class="logo" src="https://atelierbraam.com/wp-content/uploads/2024/08/01-Logo-Braam-Vert-fonce.png"
+           alt="Brâam" onerror="this.style.display='none';document.getElementById('wm').style.display='block'">
+      <div id="wm" class="wordmark" style="display:none">BR<span>Â</span>AM</div>
+      <div class="hsep"></div>
+      <div class="htitle">Pilotage e-commerce<small>Ventes &amp; produits</small></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="window.print()" style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 13px;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--muted)">🖨 PDF</button>
+      <button class="theme-btn" id="themeToggle" onclick="toggleTheme()">
+        <span id="ttIcon">🌙</span><span id="ttLabel">Mode sombre</span>
+        <span class="tt-track" id="ttTrack"><span class="tt-thumb"></span></span>
+      </button>
+      <span id="src">données intégrées</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-p="pg-overview">Vue d'ensemble</button>
+    <button class="tab" data-p="pg-canaux">Canaux</button>
+    <button class="tab" data-p="pg-marketplace">Marketplaces</button>
+    <button class="tab" data-p="pg-tendances">Tendances</button>
+    <button class="tab" data-p="pg-produits">Produits</button>
+    <button class="tab" data-p="pg-catalogue">Catalogue</button>
+    <button class="tab" data-p="pg-comparaison">Comparaison</button>
+  </nav>
+
+  <div class="controls" id="controls">
+    <div class="ctl">
+      <span class="eyebrow">Période</span>
+      <span class="selw">
+        <select class="sel" id="periodSelect">
+          <option value="aujourdhui">Aujourd'hui</option>
+          <option value="7j">7 derniers jours</option>
+          <option value="30j">30 derniers jours</option>
+          <option value="mois">Ce mois-ci</option>
+          <option value="moisdernier">Mois dernier</option>
+          <option value="trimestre">Ce trimestre</option>
+          <option value="semestre">Ce semestre</option>
+          <option value="annee">Cette année</option>
+          <option value="12mois">12 derniers mois</option>
+          <option value="perso">Personnalisé</option>
+        </select>
+      </span>
+    </div>
+    <div class="ctl">
+      <span class="eyebrow">Dates personnalisées</span>
+      <div class="ctl-row"><input type="date" id="d1"><span class="muted">→</span><input type="date" id="d2"></div>
+    </div>
+  </div>
+  <div class="periodlbl" id="plbl"></div>
+
+  <!-- ============ PAGE : VUE D'ENSEMBLE ============ -->
+  <div id="pg-overview" class="page">
+    <section class="kpis">
+      <div class="kpi" data-tip="Chiffre d'affaires brut toutes commandes (hors remboursements)"><div class="lab">CA total</div><div class="val" id="kCA"></div><div class="delta" id="kCAd"></div></div>
+      <div class="kpi" data-tip="Nombre de commandes terminées ou en cours (hors annulées)"><div class="lab">Commandes</div><div class="val" id="kCmd"></div><div class="delta" id="kCmdd"></div></div>
+      <div class="kpi" data-tip="CA total ÷ nombre de commandes sur la période"><div class="lab">Panier moyen</div><div class="val" id="kAOV"></div><div class="delta" id="kAOVd"></div></div>
+      <div class="kpi" data-tip="Canal générant le plus de CA sur la période sélectionnée"><div class="lab">Canal n°1</div><div class="val" id="kTop"></div><div class="delta" id="kTopd"></div></div>
+    </section>
+
+    <div class="panel">
+      <div id="projBlock" style="display:none;margin-bottom:16px">
+        <div style="background:linear-gradient(135deg,var(--teal),#0a7886);border-radius:var(--r);
+          padding:18px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.18em;opacity:.75;font-weight:600;margin-bottom:6px">Projection fin d'année</div>
+            <div style="font-family:var(--disp);font-size:28px;font-weight:600;line-height:1" id="projVal">—</div>
+            <div style="font-size:12px;opacity:.8;margin-top:6px" id="projNote"></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.18em;opacity:.75;font-weight:600;margin-bottom:6px">Rythme actuel</div>
+            <div style="font-family:var(--disp);font-size:22px;font-weight:600;line-height:1" id="projRate">—</div>
+            <div style="font-size:12px;opacity:.8;margin-top:6px">par jour en moyenne</div>
+          </div>
+        </div>
+      </div>
+      <h2>Répartition du CA par canal</h2>
+      <div class="hint">Composition et évolution sur la période sélectionnée</div>
+      <div class="repart">
+        <div class="donutwrap"><canvas id="donut"></canvas></div>
+        <div class="rtable">
+          <div class="rtotal"><span class="eyebrow">CA total période</span><span class="rtotal-val" id="dTotal"></span></div>
+          <div id="rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="read"><h2>Lecture stratégique</h2><ul id="insights"></ul></div>
+
+    <div class="recos-block">
+      <h2>Recommandations</h2>
+      <div class="rhint">3 actions prioritaires pour booster les ventes</div>
+      <div class="recos" id="recos"></div>
+    </div>
+  </div>
+
+  <!-- ============ PAGE : CANAUX ============ -->
+  <div id="pg-canaux" class="page" style="display:none">
+    <div class="panel">
+      <h2>Panier moyen par canal</h2>
+      <div class="hint">Valeur moyenne d\'une commande, sur la période sélectionnée</div>
+      <div id="aov"></div>
+    </div>
+    <div class="panel">
+      <div class="evo">
+        <div>
+          <div class="chart-head"><span class="ct">Évolution du CA</span>
+            <span class="mini-wrap"><select class="mini" id="caRange">
+              <option value="30j">30 jours</option><option value="90j">90 jours</option>
+              <option value="6mois">6 mois</option><option value="12mois">12 mois</option>
+              <option value="tout" selected>Tout</option></select></span>
+          </div>
+          <div class="chartbox"><canvas id="caChart"></canvas></div>
+        </div>
+        <div>
+          <div class="chart-head"><span class="ct">Commandes par jour</span>
+            <span class="mini-wrap"><select class="mini" id="ordersRange">
+              <option value="30j" selected>30 jours</option><option value="90j">90 jours</option>
+              <option value="6mois">6 mois</option><option value="12mois">12 mois</option>
+              <option value="tout">Tout</option></select></span>
+          </div>
+          <div class="chartbox"><canvas id="ordersChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PAGE : TENDANCES ============ -->
+  <!-- ============ PAGE : MARKETPLACES ============ -->
+  <div id="pg-marketplace" class="page" style="display:none">
+    <div class="panel" style="background:none;border:0;box-shadow:none;padding:0 0 4px">
+      <h2>Comparaison des canaux de vente</h2>
+      <div class="hint">Performance sur la période sélectionnée · Top 5 produits par canal</div>
+    </div>
+    <div class="mp-grid" id="mpGrid"></div>
+  </div>
+
+  <div id="pg-tendances" class="page" style="display:none">
+    <div class="period-notice"><span>📅</span> Vue fixe sur les <b>12 derniers mois</b> — le sélecteur de période ne s'applique pas ici</div>
+    <div class="panel">
+      <h2>Cette année vs l'an dernier</h2>
+      <div class="hint" id="yoySub"></div>
+      <div id="yoy"></div>
+    </div>
+    <div class="panel">
+      <h2>Indicateurs clés</h2><div class="hint">Sur les 12 derniers mois</div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <div class="panel">
+      <h2>Saisonnalité</h2><div class="hint">CA mensuel comparé d\'une année sur l'autre</div>
+      <div class="chartbox-lg"><canvas id="saison"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ============ PAGE : CATALOGUE ============ -->
+  <div id="pg-catalogue" class="page" style="display:none">
+
+    <!-- BLOC 1 : PAR MARQUE -->
+    <div class="panel">
+      <h2>Ventes par marque</h2>
+      <div class="hint">Sélectionne une marque pour voir ses performances sur la période</div>
+      <div class="cat-filter-group" style="max-width:320px;margin-bottom:20px">
+        <div class="fl-label">Marque</div>
+        <div class="cat-sel-wrap">
+          <select class="cat-sel" id="selBrand">
+            <option value="tous">Toutes les marques</option>
+            <option value="Airscape">Airscape</option>
+            <option value="Atelier Marta">Atelier Marta</option>
+            <option value="BRÂAM">BRÂAM</option>
+            <option value="Brita">Brita</option>
+            <option value="De'Longhi">De'Longhi</option>
+            <option value="Jura">Jura</option>
+            <option value="La Main Noire">La Main Noire</option>
+            <option value="Necta">Necta</option>
+            <option value="Palais des thés">Palais des thés</option>
+            <option value="Autre">Autre / Non identifiée</option>
+          </select>
+        </div>
+      </div>
+      <section class="cat-kpis" style="margin-bottom:18px">
+        <div class="kpi"><div class="lab">CA marque</div><div class="val" id="bCA"></div><div class="delta" id="bCAd"></div></div>
+        <div class="kpi coral"><div class="lab">Unités vendues</div><div class="val" id="bQty"></div><div class="delta" id="bQtyd"></div></div>
+        <div class="kpi"><div class="lab">Références</div><div class="val" id="bRef"></div><div class="delta muted" id="bRefd"></div></div>
+        <div class="kpi coral"><div class="lab">Panier moyen</div><div class="val" id="bPM"></div><div class="delta muted" id="bPMd"></div></div>
+      </section>
+      <div class="cat-best">
+        <div class="panel" style="margin-bottom:0;border:1px solid var(--line2)">
+          <h2>Top 10 — par chiffre d'affaires</h2>
+          <div class="hint">Les modèles qui rapportent le plus</div>
+          <div id="bRankCA"></div>
+        </div>
+        <div class="panel" style="margin-bottom:0;border:1px solid var(--line2)">
+          <h2>Top 10 — les plus commandés</h2>
+          <div class="hint">Les modèles les plus vendus en unités</div>
+          <div id="bRankQty"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc-sep"><div class="bs-line"></div><div class="bs-label">Par catégorie</div><div class="bs-line"></div></div>
+    <!-- BLOC 2 : PAR CATÉGORIE -->
+    <div class="panel">
+      <h2>Ventes par catégorie</h2>
+      <div class="hint">Sélectionne une catégorie WooCommerce pour voir ses performances sur la période</div>
+      <div class="cat-filter-group" style="max-width:360px;margin-bottom:20px">
+        <div class="fl-label">Catégorie</div>
+        <div class="cat-sel-wrap">
+          <select class="cat-sel" id="selCat">
+            <option value="toutes">Toutes les catégories</option>
+            <option value="Accessoires">Accessoires</option>
+            <option value="Accessoires &amp; pièces détachées – B2B">Accessoires &amp; pièces détachées – B2B</option>
+            <option value="Cabinet de curiosités">Cabinet de curiosités</option>
+            <option value="Cafetière filtre">Cafetière filtre</option>
+            <option value="Cafés de Spécialité">Cafés de Spécialité</option>
+            <option value="Machine à Café à Grains – B2B">Machine à Café à Grains – B2B</option>
+            <option value="Machine à Café à Grains – B2C">Machine à Café à Grains – B2C</option>
+            <option value="Machines à café reconditionnées">Machines à café reconditionnées</option>
+            <option value="Produits d'Entretien">Produits d'Entretien</option>
+            <option value="Produits d'Entretien – B2B">Produits d'Entretien – B2B</option>
+            <option value="Thés &amp; Boissons Gourmandes">Thés &amp; Boissons Gourmandes</option>
+            <option value="Thés en Sachets">Thés en Sachets</option>
+          </select>
+        </div>
+      </div>
+      <section class="cat-kpis" style="margin-bottom:18px">
+        <div class="kpi"><div class="lab">CA catégorie</div><div class="val" id="cCA"></div><div class="delta" id="cCAd"></div></div>
+        <div class="kpi coral"><div class="lab">Unités vendues</div><div class="val" id="cQty"></div><div class="delta" id="cQtyd"></div></div>
+        <div class="kpi"><div class="lab">Références</div><div class="val" id="cRef"></div><div class="delta muted" id="cRefd"></div></div>
+        <div class="kpi coral"><div class="lab">Panier moyen</div><div class="val" id="cPM"></div><div class="delta muted" id="cPMd"></div></div>
+      </section>
+      <div class="cat-best">
+        <div class="panel" style="margin-bottom:0;border:1px solid var(--line2)">
+          <h2>Top 10 — par chiffre d'affaires</h2>
+          <div class="hint">Les produits qui rapportent le plus</div>
+          <div id="cRankCA"></div>
+        </div>
+        <div class="panel" style="margin-bottom:0;border:1px solid var(--line2)">
+          <h2>Top 10 — les plus commandés</h2>
+          <div class="hint">Les produits les plus vendus en unités</div>
+          <div id="cRankQty"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc-sep"><div class="bs-line"></div><div class="bs-label">Par canal d'acquisition</div><div class="bs-line"></div></div>
+    <!-- BLOC 3 : PAR CANAL -->
+    <div class="panel">
+      <h2>Ventes par canal</h2>
+      <div class="hint">Sélectionne un canal pour voir les produits qu'il génère · nécessite le backfill du script Produits</div>
+      <div class="cat-filter-group" style="max-width:320px;margin-bottom:20px">
+        <div class="fl-label">Canal</div>
+        <div class="cat-sel-wrap">
+          <select class="cat-sel" id="selCanal">
+            <option value="tous">Tous les canaux</option>
+            <option value="ChatGPT">ChatGPT</option>
+            <option value="Direct">Direct</option>
+            <option value="Emailing">Emailing</option>
+            <option value="Inconnu">Inconnu</option>
+            <option value="Amazon">Amazon</option>
+            <option value="Fnac/Darty">Fnac/Darty</option>
+            <option value="Murex">Murex</option>
+            <option value="Référent">Référent</option>
+            <option value="SEA">SEA</option>
+            <option value="SEO">SEO</option>
+            <option value="SMO">SMO</option>
+            <option value="Trustpilot">Trustpilot</option>
+          </select>
+        </div>
+      </div>
+      <div id="canalNoCanalMsg" style="display:none;padding:20px;background:var(--bg);border-radius:12px;font-size:13px;color:var(--muted);line-height:1.6">
+        ⚠️ La colonne <b>Canal</b> n'est pas encore dans ton onglet Produits.<br>
+        Lance <b>backfill()</b> dans le projet Apps Script Produits pour la remplir — puis redéploie sur Netlify.
+      </div>
+      <div id="canalContent">
+        <section class="cat-kpis" style="margin-bottom:18px">
+          <div class="kpi"><div class="lab">CA canal</div><div class="val" id="chCA"></div><div class="delta" id="chCAd"></div></div>
+          <div class="kpi coral"><div class="lab">Unités vendues</div><div class="val" id="chQty"></div><div class="delta" id="chQtyd"></div></div>
+          <div class="kpi"><div class="lab">Références</div><div class="val" id="chRef"></div><div class="delta muted" id="chRefd"></div></div>
+          <div class="kpi coral"><div class="lab">Panier moyen</div><div class="val" id="chPM"></div><div class="delta muted" id="chPMd"></div></div>
+        </section>
+        <div class="cat-best">
+          <div class="panel" style="margin-bottom:0;border:1px solid var(--line2)">
+            <h2>Top 10 — par chiffre d'affaires</h2>
+            <div class="hint">Produits les plus rentables sur ce canal</div>
+            <div id="chRankCA"></div>
+          </div>
+          <div class="panel" style="margin-bottom:0;border:1px solid var(--line2)">
+            <h2>Top 10 — les plus commandés</h2>
+            <div class="hint">Produits les plus vendus en unités sur ce canal</div>
+            <div id="chRankQty"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+    <!-- ============ PAGE : COMPARAISON ============ -->
+  <div id="pg-comparaison" class="page" style="display:none">
+    <div class="period-notice"><span>📅</span> Vue par <b>année complète</b> — le sélecteur de période ne s'applique pas ici</div>
+    <div class="panel" style="background:none;border:0;box-shadow:none;padding:0;margin-bottom:8px">
+      <h2>Comparaison annuelle</h2>
+      <div class="hint">Année en cours en temps réel, puis les années précédentes · variation vs l'année d'avant</div>
+    </div>
+    <div id="cmpYears"></div>
+  </div>
+
+  <!-- ============ PAGE : PRODUITS ============ -->
+  <div id="pg-produits" class="page" style="display:none">
+    <section class="kpis">
+      <div class="kpi"><div class="lab">CA produits</div><div class="val" id="pCA"></div><div class="delta" id="pCAd"></div></div>
+      <div class="kpi"><div class="lab">Unités vendues</div><div class="val" id="pQty"></div><div class="delta" id="pQtyd"></div></div>
+      <div class="kpi"><div class="lab">Références actives</div><div class="val" id="pRef"></div><div class="delta" id="pRefd"></div></div>
+      <div class="kpi"><div class="lab">Prix moyen / unité</div><div class="val" id="pPU"></div><div class="delta" id="pPUd"></div></div>
+    </section>
+
+    <div class="panel">
+      <h2>Particuliers vs Professionnels</h2>
+      <div class="hint">Répartition B2C / B2B du chiffre d'affaires sur la période</div>
+      <div class="segwrap">
+        <div class="segdonut"><canvas id="segDonut"></canvas></div>
+        <div class="segcards" id="segCards"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Familles de produits</h2><div class="hint">Part du CA par grande famille (machines, café, accessoires…)</div>
+      <div id="families"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel" style="margin-bottom:0">
+        <h2>Top 10 — par chiffre d'affaires</h2><div class="hint">Les modèles qui rapportent le plus</div>
+        <div id="rankCA"></div>
+      </div>
+      <div class="panel" style="margin-bottom:0">
+        <h2>Top 10 — les plus commandés</h2><div class="hint">Tous produits confondus, en unités</div>
+        <div id="rankCmd"></div>
+      </div>
+    </div>
+    <div style="height:4px"></div>
+
+    <div class="grid2">
+      <div class="panel" style="margin-bottom:0">
+        <h2>Machines les plus commandées</h2>
+        <div class="hint">Classement par unités vendues, toutes couleurs regroupées</div>
+        <div id="rankMachines"></div>
+      </div>
+      <div class="panel" style="margin-bottom:0">
+        <h2>Café en grains les plus commandés</h2>
+        <div class="hint">Classement par unités vendues, par format (1Kg, 250g…)</div>
+        <div id="rankCafe"></div>
+      </div>
+    </div>
+    <div style="height:16px"></div>
+
+    <div class="panel">
+      <h2>DeLonghi vs Jura</h2>
+      <div class="hint">CA et unités vendues par marque sur la période · machines uniquement</div>
+      <div class="brandgrid" id="brandCards"></div>
+    </div>
+
+    <div class="read"><h2>Lecture stratégique — Produits</h2><ul id="pInsights"></ul></div>
+  </div>
+
+  <footer id="footerBar">
+  <div style="display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap">
+    <span>Brâam · Pilotage e-commerce</span>
+    <span style="color:var(--line)">|</span>
+    <span>Source : WooCommerce + Google Sheet</span>
+    <span style="color:var(--line)">|</span>
+    <span id="footerDate"></span>
+    <span style="color:var(--line)">|</span>
+    <span>Mis à jour toutes les 15 min</span>
+  </div>
+</footer>
+</div>
+
+<script>
+// ===================== CONFIG =====================
+const CONFIG = {
+  CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGWhBG1Ln3WH9DAuzGdyy_4dzzpCcVcGilMMu5BZqKK54THiO79G9yWnm4e3DGVMI_akqcKt-NPbHU/pub?gid=1017730572&single=true&output=csv",  // Ventes par canal
+  CSV_PRODUITS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGWhBG1Ln3WH9DAuzGdyy_4dzzpCcVcGilMMu5BZqKK54THiO79G9yWnm4e3DGVMI_akqcKt-NPbHU/pub?gid=100566697&single=true&output=csv"  // Produits
+};
+
+// ===================== DONNÉES INTÉGRÉES =====================
+const CSV_EMBED = `Date,Canal,Commandes,CA
+2025-01-03,Référent,1,"27,55"
+2025-01-06,Direct,2,"101,41"
+2025-01-07,Direct,1,"227,88"
+2025-01-08,Direct,1,"134,51"
+2025-01-09,Direct,1,"103,39"
+2025-01-13,Direct,1,"170,91"
+2025-01-14,SEO,1,"99,00"
+2025-01-17,Direct,1,"85,46"
+2025-01-18,Direct,1,"52,75"
+2025-01-20,SEA,1,"658,80"
+2025-01-24,Référent,1,"135,77"
+2025-01-24,Inconnu,1,"36,96"
+2025-01-28,SEO,1,"53,81"
+2025-02-02,SEA,1,"33,17"
+2025-02-05,Direct,1,"113,94"
+2025-02-07,SEA,1,"958,80"
+2025-02-16,SEA,1,"382,80"
+2025-02-24,Emailing,1,"30,32"
+2025-02-28,Direct,2,"48,42"
+2025-03-04,SEO,1,"1716,00"
+2025-03-13,Direct,2,"193,38"
+2025-03-14,Direct,1,"77,54"
+2025-03-16,SEA,1,"399,00"
+2025-03-18,Inconnu,1,"329,00"
+2025-03-19,Direct,1,"216,49"
+2025-03-26,Inconnu,2,"452,63"
+2025-03-26,SEO,1,"134,51"
+2025-03-27,Direct,1,"18,60"
+2025-03-29,Direct,1,"56,97"
+2025-03-31,Référent,1,"28,89"
+2025-04-07,Direct,1,"1079,10"
+2025-04-14,Direct,1,"1716,00"
+2025-04-15,Emailing,1,"37,25"
+2025-04-17,Référent,1,"85,38"
+2025-04-20,Direct,1,"22,49"
+2025-04-23,Inconnu,1,"23,46"
+2025-04-24,Direct,3,"440,46"
+2025-04-24,Inconnu,1,"23,66"
+2025-04-26,SEO,1,"16,98"
+2025-04-27,SEO,1,"419,00"
+2025-04-30,Direct,1,"1140,00"
+2025-05-06,SEO,1,"170,91"
+2025-05-06,Inconnu,1,"0,00"
+2025-05-10,Direct,1,"88,78"
+2025-05-11,SEO,1,"113,94"
+2025-05-11,Direct,1,"433,04"
+2025-05-13,Direct,2,"2043,05"
+2025-05-13,Emailing,1,"28,23"
+2025-05-20,Inconnu,2,"119,65"
+2025-05-20,Direct,1,"52,75"
+2025-05-25,Direct,1,"246,05"
+2025-06-01,Direct,2,"59,50"
+2025-06-01,SEA,1,"40,97"
+2025-06-02,Direct,1,"199,40"
+2025-06-03,SEO,1,"3275,40"
+2025-06-03,Direct,1,"264,84"
+2025-06-04,SEO,1,"16,68"
+2025-06-04,Direct,1,"47,35"
+2025-06-05,Direct,2,"98,81"
+2025-06-05,SEO,1,"358,80"
+2025-06-06,Direct,1,"37,93"
+2025-06-07,SEA,1,"80,78"
+2025-06-09,Direct,1,"47,35"
+2025-06-09,Inconnu,1,"378,00"
+2025-06-10,Direct,2,"298,65"
+2025-06-11,Direct,1,"129,20"
+2025-06-11,SEO,2,"1189,41"
+2025-06-12,Direct,1,"31,46"
+2025-06-14,Direct,1,"33,17"
+2025-06-16,SEO,1,"1019,00"
+2025-06-18,Référent,1,"26,66"
+2025-06-18,SEO,1,"26,96"
+2025-06-18,Direct,1,"79,80"
+2025-06-20,SEO,1,"103,39"
+2025-06-21,SEA,1,"378,00"
+2025-06-23,Direct,1,"1668,00"
+2025-06-24,Direct,1,"53,81"
+2025-06-28,Direct,1,"65,76"
+2025-06-28,Inconnu,1,"53,81"
+2025-07-03,Direct,1,"0,00"
+2025-07-05,SEA,1,"31,57"
+2025-07-06,SEA,1,"919,00"
+2025-07-07,SEA,1,"799,00"
+2025-07-09,SEA,1,"799,00"
+2025-07-10,SEO,1,"28,89"
+2025-07-13,Référent,1,"120,23"
+2025-07-19,Inconnu,1,"44,77"
+2025-07-20,Direct,1,"399,00"
+2025-07-20,SEA,1,"799,00"
+2025-07-22,SEA,1,"358,80"
+2025-07-22,Direct,1,"804,84"
+2025-07-24,SEO,1,"419,00"
+2025-07-25,SEA,1,"44,58"
+2025-07-26,Direct,1,"0,78"
+2025-07-27,Inconnu,1,"17,29"
+2025-07-31,Direct,1,"99,25"
+2025-07-31,SEA,1,"99,00"
+2025-08-02,Direct,1,"2316,00"
+2025-08-05,SEA,1,"0,00"
+2025-08-06,SEA,1,"21,76"
+2025-08-06,SEO,1,"48,59"
+2025-08-08,SEA,1,"0,00"
+2025-08-09,SEA,1,"0,00"
+2025-08-12,SEA,1,"44,77"
+2025-08-13,Fnac/Darty,1,"703,98"
+2025-08-13,SEA,1,"699,00"
+2025-08-18,SEO,1,"0,00"
+2025-08-18,Inconnu,1,"77,87"
+2025-08-19,Direct,3,"82,23"
+2025-08-19,Emailing,1,"749,17"
+2025-08-20,SEO,1,"285,00"
+2025-08-20,Direct,1,"0,00"
+2025-08-24,Direct,1,"68,71"
+2025-08-25,Direct,1,"113,94"
+2025-08-27,Direct,1,"30,23"
+2025-08-27,SEO,1,"0,00"
+2025-08-27,SEA,1,"170,40"
+2025-08-28,Direct,1,"0,00"
+2025-08-29,Direct,1,"749,17"
+2025-08-30,SEA,1,"19,67"
+2025-08-30,Direct,1,"40,78"
+2025-09-01,SEA,1,"664,06"
+2025-09-02,SEA,1,"117,25"
+2025-09-02,Direct,1,"145,26"
+2025-09-03,SEA,1,"1716,00"
+2025-09-03,Direct,1,"32,39"
+2025-09-05,Direct,1,"0,00"
+2025-09-05,SEA,1,"111,17"
+2025-09-07,Direct,1,"77,54"
+2025-09-08,Direct,1,"2038,80"
+2025-09-09,SEA,1,"11,47"
+2025-09-11,Inconnu,1,"37,93"
+2025-09-13,SEA,1,"56,06"
+2025-09-13,SEO,1,"67,39"
+2025-09-13,Emailing,1,"96,61"
+2025-09-15,SEA,1,"47,41"
+2025-09-15,Référent,1,"72,64"
+2025-09-15,Inconnu,2,"52,31"
+2025-09-16,Direct,1,"89,68"
+2025-09-16,SEA,2,"72,32"
+2025-09-18,SEO,2,"0,00"
+2025-09-20,Direct,1,"0,00"
+2025-09-21,Direct,1,"10,52"
+2025-09-22,Direct,2,"152,69"
+2025-09-23,SEA,1,"30,53"
+2025-09-25,SEA,1,"76,97"
+2025-09-28,Emailing,1,"761,28"
+2025-10-01,Inconnu,1,"262,21"
+2025-10-03,SEO,1,"242,12"
+2025-10-08,Direct,1,"80,71"
+2025-10-11,Référent,1,"31,58"
+2025-10-12,Direct,1,"83,69"
+2025-10-15,SEA,1,"2965,20"
+2025-10-17,Direct,1,"28,89"
+2025-10-20,SEA,1,"34,66"
+2025-10-21,SEA,1,"1833,56"
+2025-10-23,Inconnu,1,"54,74"
+2025-10-24,Direct,1,"146,94"
+2025-10-24,SEO,1,"36,49"
+2025-10-25,Fnac/Darty,1,"1350,00"
+2025-10-26,SEO,1,"111,17"
+2025-10-27,SEO,1,"50,77"
+2025-10-27,Inconnu,1,"65,60"
+2025-10-29,Inconnu,1,"419,00"
+2025-11-02,Fnac/Darty,2,"1198,00"
+2025-11-03,SEA,2,"668,00"
+2025-11-03,Fnac/Darty,1,"400,00"
+2025-11-07,SEA,2,"38,16"
+2025-11-08,SEA,1,"41,74"
+2025-11-10,SEA,1,"17,29"
+2025-11-11,Direct,1,"2966,65"
+2025-11-12,Fnac/Darty,1,"649,00"
+2025-11-12,SEA,1,"19,67"
+2025-11-13,SEA,1,"19,67"
+2025-11-16,SEA,1,"34,75"
+2025-11-17,Direct,1,"28,89"
+2025-11-17,Fnac/Darty,2,"1429,00"
+2025-11-17,SEA,1,"53,03"
+2025-11-17,SEO,1,"42,90"
+2025-11-18,SEO,1,"70,22"
+2025-11-19,Direct,1,"1716,00"
+2025-11-19,SEA,1,"56,34"
+2025-11-20,Fnac/Darty,1,"589,00"
+2025-11-21,SEA,2,"1669,73"
+2025-11-21,Emailing,1,"146,65"
+2025-11-22,Fnac/Darty,1,"420,00"
+2025-11-23,SEA,1,"299,00"
+2025-11-25,SEA,1,"74,11"
+2025-11-27,SEA,3,"74,11"
+2025-11-27,SEO,1,"0,00"
+2025-11-28,SEO,1,"0,00"
+2025-11-28,Fnac/Darty,2,"1398,00"
+2025-11-28,SEA,1,"299,00"
+2025-11-29,SEA,1,"106,90"
+2025-11-29,Direct,1,"0,00"
+2025-11-30,Fnac/Darty,3,"1804,00"
+2025-12-01,Inconnu,1,"649,00"
+2025-12-01,Fnac/Darty,1,"420,00"
+2025-12-02,Inconnu,1,"0,00"
+2025-12-03,Direct,1,"36,12"
+2025-12-03,Référent,1,"101,28"
+2025-12-03,SEA,1,"83,56"
+2025-12-04,Direct,2,"591,89"
+2025-12-06,SEA,1,"0,00"
+2025-12-07,Emailing,1,"39,24"
+2025-12-08,Direct,2,"285,00"
+2025-12-09,Inconnu,1,"299,00"
+2025-12-09,Direct,1,"299,00"
+2025-12-10,Inconnu,1,"29,69"
+2025-12-10,Fnac/Darty,1,"840,00"
+2025-12-11,Direct,2,"66,99"
+2025-12-13,Fnac/Darty,1,"840,00"
+2025-12-13,SEA,1,"146,65"
+2025-12-14,SEA,3,"83,48"
+2025-12-14,Fnac/Darty,1,"399,00"
+2025-12-15,SEA,2,"342,39"
+2025-12-16,SEA,3,"188,10"
+2025-12-16,Inconnu,1,"285,00"
+2025-12-17,SEA,1,"34,66"
+2025-12-17,Référent,1,"0,00"
+2025-12-19,SEO,1,"285,00"
+2025-12-20,SEA,3,"131,52"
+2025-12-21,SEA,2,"232,87"
+2025-12-24,SEA,2,"94,61"
+2025-12-26,SEA,2,"105,07"
+2025-12-26,Inconnu,1,"14,70"
+2025-12-27,SEA,1,"64,86"
+2025-12-28,SEA,1,"62,89"
+2025-12-30,SEA,1,"19,67"
+2025-12-31,SEA,1,"188,10"
+2026-01-01,Direct,1,"43,08"
+2026-01-03,SEA,1,"25,58"
+2026-01-06,Direct,1,"3396,61"
+2026-01-06,Inconnu,1,"649,00"
+2026-01-07,Référent,1,"34,22"
+2026-01-07,SEA,1,"3588,00"
+2026-01-08,Fnac/Darty,3,"3118,00"
+2026-01-08,Direct,1,"549,00"
+2026-01-10,SEA,2,"86,31"
+2026-01-11,Direct,1,"121,54"
+2026-01-12,Fnac/Darty,1,"1099,00"
+2026-01-13,Direct,1,"131,98"
+2026-01-13,SEO,1,"0,00"
+2026-01-14,Direct,1,"43,74"
+2026-01-14,SEO,1,"31,67"
+2026-01-17,SEA,1,"44,08"
+2026-01-17,Direct,1,"44,58"
+2026-01-17,Inconnu,1,"689,00"
+2026-01-18,Fnac/Darty,1,"840,00"
+2026-01-18,Direct,1,"19,67"
+2026-01-19,Direct,1,"1140,00"
+2026-01-19,Emailing,1,"29,75"
+2026-01-19,Fnac/Darty,1,"649,00"
+2026-01-22,SEA,1,"649,00"
+2026-01-23,Fnac/Darty,1,"649,00"
+2026-01-23,Direct,1,"107,19"
+2026-01-24,SEA,1,"358,80"
+2026-01-25,SEA,1,"749,00"
+2026-01-26,Fnac/Darty,1,"420,00"
+2026-01-27,SEA,1,"15,13"
+2026-01-27,Emailing,1,"749,00"
+2026-01-27,SEO,1,"4574,93"
+2026-01-28,Direct,1,"146,65"
+2026-01-28,SEA,1,"1751,65"
+2026-01-29,SEA,2,"34,22"
+2026-01-31,SEO,1,"616,55"
+2026-02-01,Direct,1,"54,12"
+2026-02-02,SEA,1,"0,00"
+2026-02-02,Référent,1,"649,00"
+2026-02-03,SEO,1,"674,10"
+2026-02-04,SEA,1,"13,13"
+2026-02-04,Emailing,1,"477,68"
+2026-02-04,SEO,1,"53,46"
+2026-02-05,Direct,1,"52,92"
+2026-02-05,Emailing,1,"109,04"
+2026-02-06,Direct,1,"0,00"
+2026-02-07,SEA,1,"146,65"
+2026-02-08,Emailing,1,"749,00"
+2026-02-08,SEA,1,"88,62"
+2026-02-11,SEA,1,"749,00"
+2026-02-12,Direct,1,"56,40"
+2026-02-12,SEA,1,"184,68"
+2026-02-12,SEO,1,"2259,00"
+2026-02-13,Amazon,1,"0,00"
+2026-02-14,SEO,1,"0,00"
+2026-02-15,SEA,1,"749,00"
+2026-02-16,Emailing,1,"131,98"
+2026-02-17,Direct,1,"922,80"
+2026-02-18,Direct,1,"88,62"
+2026-02-19,SEO,1,"65,75"
+2026-02-21,SEA,1,"146,65"
+2026-02-21,SEO,3,"157,02"
+2026-02-22,SEO,1,"64,14"
+2026-02-23,Direct,1,"57,39"
+2026-02-24,Emailing,1,"56,59"
+2026-02-24,Direct,1,"18,47"
+2026-02-27,SEA,1,"59,73"
+2026-02-27,ChatGPT,1,"33,55"
+2026-02-28,Référent,1,"749,00"
+2026-03-07,SEA,1,"70,82"
+2026-03-08,SEO,1,"88,62"
+2026-03-10,SEA,3,"254,80"
+2026-03-15,Emailing,1,"33,86"
+2026-03-15,Direct,1,"41,35"
+2026-03-15,SEA,1,"23,60"
+2026-03-16,Emailing,1,"51,65"
+2026-03-17,Direct,1,"30,47"
+2026-03-18,SEA,2,"508,73"
+2026-03-20,SEA,1,"16,15"
+2026-03-20,SEO,1,"142,05"
+2026-03-21,SEA,2,"174,46"
+2026-03-22,SEA,1,"16,15"
+2026-03-22,Inconnu,1,"53,97"
+2026-03-24,Direct,1,"53,45"
+2026-03-26,Direct,1,"89,13"
+2026-03-29,SEA,1,"48,58"
+2026-03-30,SEA,1,"99,00"
+2026-03-30,Inconnu,1,"18,47"
+2026-03-30,Direct,1,"63,68"
+2026-03-31,SEA,1,"33,46"
+2026-04-01,Fnac/Darty,2,"898,00"
+2026-04-02,SEA,1,"144,14"
+2026-04-04,Direct,1,"142,05"
+2026-04-07,Direct,1,"52,92"
+2026-04-09,Direct,1,"52,44"
+2026-04-10,SEA,1,"19,75"
+2026-04-11,Direct,1,"86,09"
+2026-04-12,SEA,2,"70,29"
+2026-04-12,Direct,1,"99,00"
+2026-04-13,SEA,1,"34,92"
+2026-04-13,Fnac/Darty,1,"759,00"
+2026-04-15,SEA,1,"27,15"
+2026-04-15,Direct,1,"659,00"
+2026-04-17,Fnac/Darty,1,"759,00"
+2026-04-17,SEA,1,"106,90"
+2026-04-18,Direct,1,"124,65"
+2026-04-18,SEA,1,"285,00"
+2026-04-19,SEA,4,"656,64"
+2026-04-20,SEA,1,"25,02"
+2026-04-20,Direct,1,"146,65"
+2026-04-22,Direct,1,"53,45"
+2026-04-23,Fnac/Darty,1,"759,00"
+2026-04-24,SEA,3,"419,39"
+2026-04-24,Fnac/Darty,1,"899,00"
+2026-04-25,SEA,1,"21,64"
+2026-04-26,SEO,1,"59,73"
+2026-04-27,SEA,1,"1716,00"
+2026-04-28,SEA,1,"170,40"
+2026-04-28,Autre,1,"99,00"
+2026-04-30,Direct,1,"358,80"
+2026-05-01,Inconnu,1,"18,47"
+2026-05-01,Direct,1,"759,00"
+2026-05-02,SEA,1,"33,46"
+2026-05-02,ChatGPT,1,"18,47"
+2026-05-03,Fnac/Darty,1,"399,98"
+2026-05-03,Direct,1,"33,27"
+2026-05-04,Fnac/Darty,1,"25,34"
+2026-05-05,Fnac/Darty,2,"58,27"
+2026-05-06,Direct,1,"74,11"
+2026-05-06,Fnac/Darty,1,"499,00"
+2026-05-07,SEA,1,"131,98"
+2026-05-09,SEA,2,"847,62"
+2026-05-10,Emailing,1,"50,22"
+2026-05-10,SEA,1,"36,83"
+2026-05-11,SEA,1,"66,70"
+2026-05-13,SEA,1,"36,37"
+2026-05-13,SEO,1,"33,27"
+2026-05-15,SEA,1,"27,15"
+2026-05-18,SEA,1,"15,38"
+2026-05-18,SEO,1,"33,86"
+2026-05-19,SEA,1,"200,87"
+2026-05-20,SEA,1,"40,54"
+2026-05-21,Référent,1,"113,18"
+2026-05-21,SEA,1,"51,77"
+2026-05-23,SEO,1,"85,37"
+2026-05-23,Direct,1,"50,75"
+2026-05-24,SEA,1,"96,48"
+2026-05-25,SEA,1,"13,61"
+2026-05-27,Fnac/Darty,1,"689,00"
+2026-05-28,SEA,1,"18,46"
+2026-05-29,Direct,1,"24,05"
+2026-05-29,SEA,1,"37,46"
+2026-06-02,SEA,1,"34,93"
+2026-06-03,Emailing,1,"154,05"
+2026-06-03,Fnac/Darty,1,"419,00"
+2026-06-04,SEA,1,"237,10"
+2026-06-04,Direct,2,"43,78"
+2026-06-07,SEA,3,"2052,57"
+2026-06-07,Fnac/Darty,1,"859,00"
+2026-06-08,SEO,2,"284,95"
+2026-06-09,SEA,1,"499,00"
+2026-06-09,SEO,2,"225,61"
+2026-06-09,Inconnu,1,"32,71"
+2026-06-10,SEA,1,"18,38"
+2026-06-11,Direct,2,"102,24"
+2026-06-11,SEA,1,"153,75"
+2026-06-12,SEO,1,"128,64"
+2026-06-12,Fnac/Darty,1,"17,59"
+2026-06-13,SEA,2,"111,03"
+2026-06-15,SEA,4,"932,59"
+2026-06-16,Fnac/Darty,1,"759,00"
+2026-06-17,SEO,2,"551,92"
+2026-06-17,Fnac/Darty,1,"0,00"
+2026-06-18,SEA,1,"498,00"
+2026-06-18,Direct,1,"50,75"
+2026-06-19,Direct,1,"83,56"
+2026-06-19,SEA,1,"200,87"
+2026-06-20,Fnac/Darty,1,"1349,00"
+2026-06-20,SEA,2,"68,72"
+2026-06-22,SEO,1,"27,15"
+2026-06-23,Fnac/Darty,1,"669,00"
+2026-06-24,SEO,1,"759,00"
+2026-06-25,Fnac/Darty,1,"419,00"
+2026-06-25,SEA,1,"18,38"
+2026-06-28,SEA,1,"16,89"
+2026-06-30,Direct,1,"53,45"
+2026-06-30,Trustpilot,1,"36,83"
+2026-07-01,Fnac/Darty,1,"14,03"
+2026-07-01,SEO,2,"587,19"
+2026-07-02,SEA,1,"59,73"
+2026-07-03,SEA,1,"699,00"
+2026-07-04,SEO,1,"126,18"
+2026-07-05,Fnac/Darty,1,"419,00"
+2026-07-06,SEA,1,"23,09"
+2026-07-07,Direct,1,"22,79"
+2026-07-07,Fnac/Darty,1,"419,00"
+2026-07-08,Direct,1,"65,52"
+2026-07-09,SEA,2,"101,39"
+2026-07-10,Emailing,1,"50,22"
+2026-07-10,Fnac/Darty,2,"878,00"
+2026-07-10,SEA,1,"75,05"
+2026-07-11,Fnac/Darty,1,"51,79"
+2026-07-12,ChatGPT,1,"62,20"
+2026-07-12,SEA,1,"40,54"
+2026-07-13,Fnac/Darty,1,"799,00"
+2026-07-15,SEO,2,"429,54"
+2026-07-15,SEA,1,"27,15"
+2026-07-16,Référent,1,"39,48"
+2026-07-17,Fnac/Darty,1,"419,00"
+2026-07-18,Direct,1,"54,80"
+2026-07-19,SEA,1,"200,87"
+2026-07-20,SEA,1,"689,90"
+2026-07-21,SEA,1,"57,39"
+2026-07-21,SEO,1,"27,09"
+2026-07-21,Fnac/Darty,1,"1159,00"
+2026-07-23,SEO,2,"459,24"
+2026-07-26,Direct,1,"100,27"
+2026-07-27,Direct,1,"60,98"
+2026-07-27,Fnac/Darty,1,"539,00"
+2026-07-28,Fnac/Darty,2,"1578,00"
+2026-07-30,Direct,1,"69,14"
+2026-07-30,Fnac/Darty,1,"1159,00"
+2026-07-31,Direct,1,"18,38"
+2026-08-02,SEA,3,"66,04"
+2026-08-02,Emailing,1,"130,50"
+2026-08-03,SEO,2,"289,62"
+2026-08-03,Direct,1,"47,07"
+2026-08-03,SEA,1,"55,59"
+2026-08-05,SEO,2,"382,90"
+2026-08-07,SEO,1,"33,02"
+2026-08-11,Direct,1,"86,09"
+2026-08-11,SEO,1,"32,28"
+2026-08-12,Référent,1,"68,90"
+2026-08-13,SEO,1,"499,00"
+2026-08-16,SEO,1,"55,11"
+2026-08-18,Inconnu,1,"18,47"
+2026-08-19,SEO,1,"356,28"
+2026-08-19,SEA,1,"200,87"
+2026-08-20,SEO,1,"56,13"
+2026-08-21,Direct,1,"599,00"
+2026-08-21,Emailing,1,"57,39"
+2026-08-22,SEO,1,"499,00"
+2026-08-25,SEA,1,"121,54"
+2026-08-25,SEO,1,"18,38"
+2026-08-27,Fnac/Darty,1,"699,00"
+2026-08-28,SEO,1,"27,28"
+2026-08-29,SEO,2,"123,60"
+2026-08-31,Direct,1,"609,90"
+2026-09-01,Fnac/Darty,1,"699,00"
+2026-09-02,Direct,1,"116,12"
+2026-09-06,SEO,1,"32,18"
+2026-09-06,ChatGPT,1,"18,38"
+2026-09-06,Direct,1,"53,45"
+2026-09-07,Direct,1,"36,51"
+2026-09-08,Direct,1,"105,59"
+2026-09-09,SEO,2,"113,90"
+2026-09-10,Référent,1,"97,92"
+2026-09-10,ChatGPT,1,"419,00"
+2026-09-10,Emailing,1,"50,22"
+2026-09-10,Direct,1,"41,38"
+2026-09-11,Fnac/Darty,1,"399,00"
+2026-09-14,Fnac/Darty,1,"1159,00"
+2026-09-14,ChatGPT,1,"16,89"
+2026-09-16,ChatGPT,1,"829,00"
+2026-09-16,SEO,1,"47,26"
+2026-09-17,Fnac/Darty,1,"1299,00"
+2026-09-17,SEO,1,"36,87"
+2026-09-20,ChatGPT,1,"30,75"
+2026-09-20,SEO,1,"14,38"
+2026-09-21,Fnac/Darty,1,"1788,00"
+2026-09-21,ChatGPT,1,"14,38"
+2026-09-23,SEO,1,"100,44"
+2026-09-25,Fnac/Darty,1,"419,00"
+2026-09-26,SEO,1,"53,12"
+2026-09-26,Fnac/Darty,1,"899,00"
+2026-09-27,SEO,1,"3,00"
+2026-10-01,SEO,1,"16,38"
+2026-10-01,Fnac/Darty,2,"1688,00"
+2026-10-02,Amazon,1,"699,00"
+2026-10-02,SEO,2,"194,84"
+2026-10-02,ChatGPT,1,"15,38"
+2026-10-03,Direct,2,"74,90"
+2026-10-03,SEO,2,"79,76"
+2026-10-04,SEA,1,"125,12"
+2026-10-06,Direct,1,"167,75"
+2026-10-06,Fnac/Darty,2,"2857,00"
+2026-10-07,Murex,17,"443,25"
+2026-10-07,Amazon,1,"27,90"
+2026-10-08,Direct,1,"94,44"
+2026-10-08,Fnac/Darty,2,"3209,00"
+2026-10-10,Direct,1,"55,60"
+2026-10-11,Direct,1,"6,48"
+2026-10-12,Amazon,1,"883,78"
+2026-10-13,Direct,1,"57,80"
+2026-10-13,Amazon,2,"31,80"
+2026-10-14,Amazon,4,"120,09"
+2026-10-14,Fnac/Darty,2,"3209,00"
+2026-10-15,Amazon,4,"148,27"
+2026-10-15,Fnac/Darty,1,"400,00"
+2026-10-15,Référent,1,"165,22"
+2026-10-16,Amazon,2,"73,30"
+2026-10-17,Amazon,3,"114,60"
+2026-10-18,Amazon,3,"81,70"
+2026-10-19,Amazon,9,"420,09"
+2026-10-19,Direct,1,"1019,15"
+2026-10-20,Amazon,2,"94,09"
+2026-10-21,Amazon,1,"32,90"
+2026-10-22,Amazon,2,"112,90"
+2026-10-22,Direct,1,"589,00"
+2026-10-23,Amazon,2,"80,70"
+2026-10-23,SEO,1,"32,42"
+2026-10-24,Amazon,1,"26,90"
+2026-10-25,Amazon,5,"137,60"
+2026-10-26,Inconnu,1,"14,38"
+2026-10-26,Amazon,2,"2201,99"
+2026-10-27,Amazon,4,"804,96"
+2026-10-28,Amazon,2,"945,55"`;
+
+
+// ===================== OUTILS =====================
+const COLORS={
+  SEA:'#f6a194', SEO:'#025964', Marketplace:'#c4a0b8', Emailing:'#d9b96a',
+  Direct:'#7dbfaf', 'Référent':'#6fa295', SMO:'#3b8b94',
+  'Fnac/Darty':'#d63b3b', Amazon:'#ff9900', Murex:'#e07fa0',
+  ChatGPT:'#74aa9c', Trustpilot:'#00b67a',
+  Bing:'#008373', Yahoo:'#6001d2', Ecosia:'#558b2f', DuckDuckGo:'#de5833',
+  Perplexity:'#20808d', Gemini:'#4285f4', Copilot:'#0067b8',
+  Inconnu:'#c8bbb2', Autre:'#b0a49a'
+};
+function colorFor(c){
+  if(COLORS[c])return COLORS[c];
+  if(c.indexOf('Marketplace')>-1)return COLORS.Marketplace;
+  return '#b8aba0';
+}
+const eur=n=>Math.round(n).toLocaleString('fr-FR')+' €';
+const eur2=n=>n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+function parseD(s){const p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function toStr(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function daysBetween(a,b){return Math.round((parseD(b)-parseD(a))/864e5)+1;}
+function fr(s){return parseD(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'2-digit'});}
+
+function parseCSV(text){
+  const rows=[],lines=text.trim().split(/\r?\n/);
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i];if(!line)continue;
+    const f=[];let cur='',q=false;
+    for(let j=0;j<line.length;j++){const ch=line[j];
+      if(ch==='"'){q=!q;continue;}
+      if(ch===','&&!q){f.push(cur);cur='';continue;}
+      cur+=ch;}
+    f.push(cur);
+    if(f.length<4)continue;
+    rows.push({date:f[0].trim(),canal:f[1].trim(),
+      commandes:parseInt(f[2],10)||0,ca:parseFloat(String(f[3]).replace(',','.'))||0});
+  }
+  return rows;
+}
+
+// ===================== ÉTAT =====================
+let DATA=[],donutChart=null,caChart=null,ordersChart=null,saisonChart=null;
+const $=id=>document.getElementById(id);
+
+function aggregate(start,end){
+  const by={};let totalCA=0,totalOrders=0;
+  DATA.forEach(r=>{
+    if(r.date<start||r.date>end)return;
+    if(!by[r.canal])by[r.canal]={orders:0,ca:0};
+    by[r.canal].orders+=r.commandes;by[r.canal].ca+=r.ca;
+    totalCA+=r.ca;totalOrders+=r.commandes;
+  });
+  return {by,totalCA,totalOrders};
+}
+function deltaHtml(cur,prev){
+  if(prev<=0)return cur>0?'<span class="up">nouv.</span>':'<span class="muted">—</span>';
+  const p=(cur-prev)/prev*100,cls=p>=0?'up':'down',s=p>=0?'▲ +':'▼ ';
+  return '<span class="'+cls+'">'+s+Math.abs(p).toFixed(0)+' %</span>';
+}
+
+// ===================== RENDU PRINCIPAL (période) =====================
+function render(start,end){
+  const cur=aggregate(start,end);
+  const N=daysBetween(start,end);
+  const prevEnd=toStr(addDays(parseD(start),-1));
+  const prevStart=toStr(addDays(parseD(prevEnd),-(N-1)));
+  const prev=aggregate(prevStart,prevEnd);
+
+  $('plbl').innerHTML='Période : <b>'+fr(start)+' → '+fr(end)+'</b> &nbsp;·&nbsp; comparé à '+fr(prevStart)+' → '+fr(prevEnd);
+
+  const aov=cur.totalOrders?cur.totalCA/cur.totalOrders:0;
+  const paov=prev.totalOrders?prev.totalCA/prev.totalOrders:0;
+  $('kCA').textContent=eur2(cur.totalCA); $('kCAd').innerHTML=deltaHtml(cur.totalCA,prev.totalCA)+' <span class="vp">vs préc.</span>';
+  $('kCmd').textContent=cur.totalOrders; $('kCmdd').innerHTML=deltaHtml(cur.totalOrders,prev.totalOrders)+' <span class="vp">vs préc.</span>';
+  $('kAOV').textContent=eur(aov); $('kAOVd').innerHTML=deltaHtml(aov,paov)+' <span class="vp">vs préc.</span>';
+  $('dTotal').textContent=eur2(cur.totalCA);
+
+  const chans=Object.keys(cur.by).map(c=>({c,ca:cur.by[c].ca,orders:cur.by[c].orders,
+    prev:prev.by[c]?prev.by[c].ca:0})).sort((a,b)=>b.ca-a.ca);
+
+  const top=chans[0];
+  $('kTop').textContent=top?top.c.replace(' (Fnac/Darty)',''):'—';
+  $('kTopd').innerHTML=top?'<span class="muted">'+(top.ca/cur.totalCA*100).toFixed(0)+' % du CA</span>':'';
+
+  const maxCA=Math.max(1,...chans.map(c=>c.ca));
+  $('rows').innerHTML=chans.map(d=>{
+    const share=(d.ca/cur.totalCA*100).toFixed(1).replace('.',',');
+    return '<div class="row"><div class="ch"><span class="dot" style="background:'+colorFor(d.c)+'"></span>'+d.c+'</div>'
+      +'<div><div class="barwrap"><div class="bar" style="width:'+(d.ca/maxCA*100).toFixed(1)+'%;background:'+colorFor(d.c)+'"></div></div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:3px">'+share+' % · '+d.orders+' cmd</div></div>'
+      +'<div class="ca">'+eur(d.ca)+'</div><div class="tr">'+deltaHtml(d.ca,d.prev)+'</div></div>';
+  }).join('');
+
+  const dd={labels:chans.map(c=>c.c),datasets:[{data:chans.map(c=>c.ca),
+    backgroundColor:chans.map(c=>colorFor(c.c)),borderColor:'#ffffff',borderWidth:3,hoverOffset:6}]};
+  if(donutChart){donutChart.data=dd;donutChart.update();}
+  else donutChart=new Chart($('donut'),{type:'doughnut',data:dd,
+    options:{maintainAspectRatio:false,cutout:'66%',plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>' '+c.label+' : '+eur(c.parsed)+' ('+(c.parsed/cur.totalCA*100).toFixed(0)+' %)'}}}}});
+
+  renderAOV(chans);
+  renderInsights(chans,cur);
+  renderRecos(chans,cur);
+  renderProduits(start,end,prevStart,prevEnd);
+  renderCatalogue(start,end,prevStart,prevEnd);
+  renderMarketplace(start,end,prevStart,prevEnd);
+}
+
+function renderAOV(chans){
+  const arr=chans.filter(x=>x.orders>0).map(x=>({c:x.c,aov:x.ca/x.orders})).sort((a,b)=>b.aov-a.aov);
+  if(!arr.length){$('aov').innerHTML='<div class="muted" style="font-size:13px">Aucune commande sur la période.</div>';return;}
+  const mx=Math.max(...arr.map(a=>a.aov));
+  $('aov').innerHTML=arr.map(a=>
+    '<div class="aovrow"><div class="nm"><span class="dot" style="background:'+colorFor(a.c)+'"></span>'+a.c+'</div>'
+    +'<div class="barwrap"><div class="bar" style="width:'+(a.aov/mx*100).toFixed(1)+'%;background:'+colorFor(a.c)+'"></div></div>'
+    +'<div class="vv">'+eur(a.aov)+'</div></div>').join('');
+}
+
+function renderInsights(chans,cur){
+  const out=[];
+  if(!chans.length){$('insights').innerHTML='<li>Aucune vente sur la période sélectionnée.</li>';return;}
+  const top=chans[0];
+  out.push('<b>'+top.c+'</b> est le 1er canal sur la période ('+(top.ca/cur.totalCA*100).toFixed(0)+' % du CA, '+eur(top.ca)+').');
+  const sig=chans.filter(x=>x.prev>=150&&x.ca>0);
+  let grow=null,decl=null;
+  sig.forEach(x=>{const d=(x.ca-x.prev)/x.prev;if(grow===null||d>grow.d)grow={c:x.c,d:d};if(decl===null||d<decl.d)decl={c:x.c,d:d};});
+  if(grow&&grow.d>0.1)out.push('<b>'+grow.c+'</b> progresse fortement (+'+(grow.d*100).toFixed(0)+' % vs période précédente).');
+  if(decl&&decl.d<-0.1)out.push('<b>'+decl.c+'</b> recule ('+(decl.d*100).toFixed(0)+' %) — à surveiller de près.');
+  if(top.c.indexOf('SEA')>-1)out.push('Le SEA porte le CA, mais son coût n\'est pas encore intégré : validez le ROAS avant d\'augmenter le budget.');
+  else if(top.c.indexOf('Marketplace')>-1)out.push('Le marketplace pèse lourd : surveiller la <b>marge nette après commissions</b> Fnac/Darty, plus faible qu\'en vente directe.');
+  const inc=chans.find(x=>x.c==='Inconnu');
+  if(inc&&inc.ca/cur.totalCA>0.15)out.push('Une part notable du CA reste en « Inconnu » ('+(inc.ca/cur.totalCA*100).toFixed(0)+' %) : vérifier que le suivi d\'origine est actif partout.');
+  $('insights').innerHTML=out.slice(0,4).map(t=>'<li>'+t+'</li>').join('');
+}
+
+function renderRecos(chans,cur){
+  const r=[];const find=n=>chans.find(x=>x.c.indexOf(n)>-1);
+  const sea=find('SEA'),mkt=find('Marketplace'),email=chans.find(x=>x.c==='Emailing');
+  const total=cur.totalCA||1,aov=cur.totalOrders?cur.totalCA/cur.totalOrders:0;
+  if(sea&&sea.ca/total>0.22&&(sea.orders?sea.ca/sea.orders:0)<aov)
+    r.push({t:'Remonter le panier moyen du SEA',d:'Mettre en avant les machines et les packs (machine + café) sur les annonces à fort volume et écarter les requêtes à très faible panier, pour gagner plus de valeur par clic payant.'});
+  if(mkt){const g=mkt.prev>0?(mkt.ca-mkt.prev)/mkt.prev:1;if(g>0.1)
+    r.push({t:'Pousser le catalogue Marketplace',d:'La demande Fnac/Darty progresse : élargir les références listées (best-sellers et machines), soigner titres et visuels des fiches, en pilotant la marge après commissions.'});}
+  if(email&&email.ca/total<0.10)
+    r.push({t:'Activer la récurrence par e-mail',d:'Canal sous-exploité : une campagne mensuelle vers les acheteurs de machines pour convertir en abonnement café — du revenu récurrent et du rachat de grains déclenché.'});
+  const fb=[
+    {t:'Cross-sell café & accessoires',d:'Proposer systématiquement grains, filtres et entretien à l\'achat d\'une machine (bloc fiche produit + e-mail post-achat) pour augmenter panier et fidélité.'},
+    {t:'Relancer les paniers abandonnés',d:'Séquence automatique J+1 / J+3 sur les paniers non finalisés : effet fort sur des paniers machines à forte valeur, à faible coût.'},
+    {t:'Capitaliser sur le SEO',d:'Le canal organique est solide : produire guides d\'achat et comparatifs sur les machines phares pour capter la demande en amont.'}
+  ];
+  for(let i=0;i<fb.length&&r.length<3;i++)r.push(fb[i]);
+  $('recos').innerHTML=r.slice(0,3).map((x,i)=>
+    '<div class="reco"><div class="rnum">'+(i+1)+'</div><div><div class="rt">'+x.t+'</div><div class="rd">'+x.d+'</div></div></div>').join('');
+}
+
+function renderYoY(){
+  const end=today, y=end.getFullYear();
+  const curS=toStr(new Date(y,0,1)), curE=toStr(end);
+  const prvS=toStr(new Date(y-1,0,1)), prvE=toStr(new Date(y-1,end.getMonth(),end.getDate()));
+  const c=aggregate(curS,curE), p=aggregate(prvS,prvE);
+  const ca=c.totalCA,pca=p.totalCA, cm=c.totalOrders,pm=p.totalOrders;
+  const av=cm?ca/cm:0, pav=pm?pca/pm:0;
+  $('yoySub').textContent='Du 1ᵉʳ janvier à aujourd\'hui · '+y+' vs '+(y-1);
+  const line=(lab,cv,pv,fmt)=>'<div class="yoyrow"><span class="yl">'+lab+'</span>'
+    +'<span class="yv">'+fmt(cv)+'<small>'+fmt(pv)+' en '+(y-1)+'</small></span>'
+    +'<span class="yd">'+deltaHtml(cv,pv)+'</span></div>';
+  $('yoy').innerHTML=line('CA',ca,pca,eur)+line('Commandes',cm,pm,n=>Math.round(n).toLocaleString('fr-FR'))+line('Panier moyen',av,pav,eur);
+}
+
+function renderFacts(){
+  const end=today, start=new Date(end.getFullYear(),end.getMonth()-11,1);
+  const s=toStr(start),e=toStr(end);
+  let totCA=0,totCmd=0,seaCA=0;const mois={};
+  DATA.forEach(r=>{if(r.date<s||r.date>e)return;
+    totCA+=r.ca;totCmd+=r.commandes;
+    if(r.canal.indexOf('SEA')>-1)seaCA+=r.ca;
+    const mk=r.date.slice(0,7);mois[mk]=(mois[mk]||0)+r.ca;});
+  const aov=totCmd?totCA/totCmd:0, seaPct=totCA?seaCA/totCA*100:0;
+  const bestM=Object.keys(mois).sort((a,b)=>mois[b]-mois[a])[0];
+  const facts=[
+    {l:'CA · 12 derniers mois',v:eur(totCA),s:'rythme annuel actuel'},
+    {l:'Panier moyen',v:eur(aov),s:'sur 12 mois'},
+    {l:'Dépendance pub (SEA)',v:Math.round(seaPct)+' %',s:'du CA via le canal payant'},
+    {l:'Meilleur mois',v:bestM?eur(mois[bestM]):'—',s:bestM?parseD(bestM+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'}):'—'}
+  ];
+  $('facts').innerHTML=facts.map(f=>'<div class="fact"><div class="fl">'+f.l+'</div><div class="fv">'+f.v+'</div><div class="fs">'+f.s+'</div></div>').join('');
+}
+
+// ===================== SAISONNALITÉ (année vs année) =====================
+function buildSaison(){
+  const yrs={};
+  DATA.forEach(r=>{const y=r.date.slice(0,4),m=+r.date.slice(5,7)-1;
+    if(!yrs[y])yrs[y]=new Array(12).fill(0);yrs[y][m]+=r.ca;});
+  const years=Object.keys(yrs).sort();
+  const months=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+  const cols=['#b7d8cd','#025964','#f6a194','#c99a3e'];
+  const ds=years.map((y,i)=>({label:y,data:yrs[y].map(v=>Math.round(v)),
+    borderColor:cols[i%cols.length],backgroundColor:'transparent',tension:.35,
+    pointRadius:2,pointBackgroundColor:cols[i%cols.length],borderWidth:2.5}));
+  if(saisonChart)saisonChart.destroy();
+  saisonChart=new Chart($('saison'),{type:'line',data:{labels:months,datasets:ds},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#2a3c3f',usePointStyle:true,boxWidth:8,font:{weight:'600'}}},
+      tooltip:{callbacks:{label:c=>' '+c.dataset.label+' : '+eur(c.parsed.y)}}},
+      scales:{y:{ticks:{callback:v=>(v/1000)+'k',color:'#94887f'},grid:{color:'#f0e3d9'}},
+        x:{ticks:{color:'#94887f'},grid:{display:false}}}}});
+}
+
+// ===================== GRAPHES ÉVOLUTION =====================
+function seriesData(metric,rangeKey){
+  const end=today;let start,gran;
+  if(rangeKey==='30j'){start=addDays(end,-29);gran='day';}
+  else if(rangeKey==='90j'){start=addDays(end,-89);gran='day';}
+  else if(rangeKey==='6mois'){start=new Date(end.getFullYear(),end.getMonth()-5,1);gran='month';}
+  else if(rangeKey==='12mois'){start=new Date(end.getFullYear(),end.getMonth()-11,1);gran='month';}
+  else{start=DATA.length?parseD(DATA[0].date):addDays(end,-365);gran='month';}
+  const s=toStr(start),e=toStr(end),agg={};
+  DATA.forEach(r=>{if(r.date<s||r.date>e)return;const k=gran==='day'?r.date:r.date.slice(0,7);
+    agg[k]=(agg[k]||0)+(metric==='ca'?r.ca:r.commandes);});
+  const labels=[],values=[];
+  if(gran==='day'){let d=parseD(s);const ed=parseD(e);
+    while(d<=ed){const k=toStr(d);labels.push(d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));values.push(Math.round(agg[k]||0));d=addDays(d,1);}}
+  else{let yy=start.getFullYear(),mm=start.getMonth();const ed=parseD(e);
+    while(new Date(yy,mm,1)<=ed){const k=yy+'-'+('0'+(mm+1)).slice(-2);
+      labels.push(new Date(yy,mm,1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}));values.push(Math.round(agg[k]||0));mm++;if(mm>11){mm=0;yy++;}}}
+  return {labels,values};
+}
+function buildCAChart(rangeKey){
+  const s=seriesData('ca',rangeKey);if(caChart)caChart.destroy();
+  caChart=new Chart($('caChart'),{type:'line',
+    data:{labels:s.labels,datasets:[{data:s.values,borderColor:'#025964',backgroundColor:'rgba(2,89,100,.10)',
+      fill:true,tension:.35,pointRadius:s.values.length>60?0:2,pointBackgroundColor:'#025964',borderWidth:2.5}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+eur(c.parsed.y)}}},
+      scales:{y:{ticks:{callback:v=>(v/1000)+'k',color:'#94887f'},grid:{color:'#f0e3d9'}},
+        x:{ticks:{color:'#94887f',maxRotation:0,autoSkip:true,maxTicksLimit:9},grid:{display:false}}}}});
+}
+function buildOrdersChart(rangeKey){
+  const s=seriesData('orders',rangeKey);if(ordersChart)ordersChart.destroy();
+  ordersChart=new Chart($('ordersChart'),{type:'bar',
+    data:{labels:s.labels,datasets:[{data:s.values,backgroundColor:'#f6a194',borderRadius:3,maxBarThickness:22}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.parsed.y+' commande(s)'}}},
+      scales:{y:{beginAtZero:true,ticks:{precision:0,color:'#94887f'},grid:{color:'#f0e3d9'}},
+        x:{ticks:{color:'#94887f',maxRotation:0,autoSkip:true,maxTicksLimit:9},grid:{display:false}}}}});
+}
+
+// ===================== PRODUITS =====================
+let PROD=[],segChart=null,prodEvoChart=null;
+
+// Bilans annuels (chiffres WooCommerce). 2023-2025 saisis à la main ; 2026 calculé en direct.
+// Pour modifier/ajouter une année, édite ce tableau. net & variations 2026 = à compléter (non calculables en direct).
+const BILANS={
+  2026:{ventes:null, net:83885.38, commandes:null, produits:null, variations:519},
+  2025:{ventes:75822.68, net:63787,    commandes:271, produits:600, variations:418},
+  2024:{ventes:8589.68,  net:7483.13,  commandes:53,  produits:130, variations:94},
+  2023:{ventes:8012.01,  net:6778.66,  commandes:48,  produits:100, variations:34}
+};
+const CMP_METRICS=[['ventes','Total des ventes','eur'],['net','Ventes nettes','eur'],
+  ['commandes','Commandes','num'],['produits','Produits vendus','num'],['variations','Variations vendues','num']];
+
+function cumLive(y){ // cumul du 1er janv. au jour/mois d'aujourd'hui, pour l'année y
+  let v=0,o=0,u=0; const m=today.getMonth(),dd=today.getDate();
+  const before=d=>d.getMonth()<m||(d.getMonth()===m&&d.getDate()<=dd);
+  DATA.forEach(r=>{const d=parseD(r.date);if(d.getFullYear()===y&&before(d)){v+=r.ca;o+=r.commandes;}});
+  PROD.forEach(r=>{const d=parseD(r.date);if(d.getFullYear()===y&&before(d))u+=r.qty;});
+  return {ventes:v,commandes:o,produits:Math.round(u)};
+}
+// ===================== CATALOGUE =====================
+const MARQUES=[
+  {label:'Airscape',        match:['airscape']},
+  {label:'Atelier Marta',   match:['atelier marta']},
+  {label:'BRÂAM',           match:['brâam','braam']},
+  {label:'Brita',           match:['brita']},
+  {label:"De'Longhi",       match:['delonghi']},
+  {label:'Jura',            match:['jura']},
+  {label:'La Main Noire',   match:['main noire','mainnoire','la main noire']},
+  {label:'Necta',           match:['necta']},
+  {label:'Palais des thés', match:['palais des thés','palais des thes']},
+];
+// Catégories dont les produits sont de marque BRÂAM (pas dans le nom produit WooCommerce)
+const BRAAM_CATS=['Cafés de Spécialité','cafes de specialite','cafés de spécialité'];
+
+const CAT_NORM=(function(){
+  const C={};
+  function add(k,v){C[k.toLowerCase()]=v;}
+  add('Machine à Café à Grains – B2C','Machine à Café à Grains – B2C');
+  add('Machine à Café à Grains - B2C','Machine à Café à Grains – B2C');
+  add('Machine à café à grains – B2C','Machine à Café à Grains – B2C');
+  add('Machine à Café à Grains – B2B','Machine à Café à Grains – B2B');
+  add('Machine à Café à Grains - B2B','Machine à Café à Grains – B2B');
+  add('Machine à café à grains – B2B','Machine à Café à Grains – B2B');
+  add('Machines à café reconditionnées','Machines à café reconditionnées');
+  add('Machine à Café à Grains –','Machines à café reconditionnées');
+  add('Machine à Café à Grains -','Machines à café reconditionnées');
+  add('Machine à cafe à grains –','Machines à café reconditionnées');
+  add('Machine à cafe à grains -','Machines à café reconditionnées');
+  add('Cafetière filtre','Cafetière filtre');
+  add('Cafés de Spécialité','Cafés de Spécialité');
+  add('Cafes de Specialite','Cafés de Spécialité');
+  add('Accessoires','Accessoires');
+  add('Accessoires & pièces détachées – B2B','Accessoires & pièces détachées – B2B');
+  add("Produits d'Entretien – B2B","Produits d'Entretien – B2B");
+  add("Produits d Entretien B2B","Produits d'Entretien – B2B");
+  add("Produits d'Entretien - B2B","Produits d'Entretien – B2B");
+  add('Thés en Sachets','Thés en Sachets');
+  add('Thés & Boissons Gourmandes','Thés & Boissons Gourmandes');
+  add('Cabinet de curiosités','Cabinet de curiosités');
+  add('Cabinet de Curiosités','Cabinet de curiosités');
+  add("Produits d'Entretien","Produits d'Entretien");
+  add("Produits d Entretien","Produits d'Entretien");
+  add("Produits d'Entretien -","Produits d'Entretien");
+  add("Produits d'Entretien –","Produits d'Entretien");
+  add('Produits d\'Entretien -','Produits d\'Entretien');
+  return C;
+})();
+function normCat(cat){
+  var raw=String(cat||'');
+  var k=raw.toLowerCase();
+  if(CAT_NORM[k])return CAT_NORM[k];
+  // essai sans accents + apostrophes normalisées (deacc)
+  var ka=deacc(k);
+  for(var key in CAT_NORM){if(deacc(key)===ka)return CAT_NORM[key];}
+  // fallback : cherche la clé normalisée dont la version deacc est un préfixe de ka
+  // (ex. "produits d'entretien -" commence par "produits d'entretien")
+  var best=null, bestLen=0;
+  for(var key2 in CAT_NORM){
+    var dk=deacc(key2);
+    if(ka.indexOf(dk)===0&&dk.length>bestLen){bestLen=dk.length;best=CAT_NORM[key2];}
+  }
+  if(best)return best;
+  return cleanName(raw)||'Autre';
+}
+
+let catBrand='tous', catCat='toutes';
+let catStart='',catEnd='',catPrevStart='',catPrevEnd='';
+
+function brandOf(rawName, cat){
+  // Tester catégorie BRÂAM en priorité (café, thés maison sans nom de marque dans WooCommerce)
+  if(cat){
+    var cn=deacc(String(cat||''));
+    if(BRAAM_CATS.some(function(c){return cn.indexOf(deacc(c))>-1;}))return 'BRÂAM';
+  }
+  // Matcher sur le nom brut (avant cleanName/modelOf) pour garder DeLonghi même avec <span>
+  var n=deacc(cleanName(String(rawName||'')));
+  for(var i=0;i<MARQUES.length;i++){
+    if(MARQUES[i].match.some(function(k){return n.indexOf(deacc(k))>-1;}))return MARQUES[i].label;
+  }
+  return 'Autre';
+}
+function filterCatData(rows){
+  return rows.filter(function(r){
+    var bOk=catBrand==='tous'||r.brand===catBrand;
+    var cOk=catCat==='toutes'||r.normCat===catCat;
+    return bOk&&cOk;
+  });
+}
+function renderCatalogue(start,end,pStart,pEnd){
+  catStart=start;catEnd=end;catPrevStart=pStart;catPrevEnd=pEnd;
+  if(!document.getElementById('bCA'))return;
+
+  // Listeners init une seule fois
+  if(!$('selBrand')._init){
+    $('selBrand').addEventListener('change',function(){catBrand=this.value;renderBrand(catStart,catEnd,catPrevStart,catPrevEnd);});
+    $('selBrand')._init=true;
+  }
+  if(!$('selCat')._init){
+    $('selCat').addEventListener('change',function(){catCat=this.value;renderCatBloc(catStart,catEnd,catPrevStart,catPrevEnd);});
+    $('selCat')._init=true;
+  }
+  $('selBrand').value=catBrand;
+  $('selCat').value=catCat;
+  renderBrand(start,end,pStart,pEnd);
+  renderCatBloc(start,end,pStart,pEnd);
+  renderCanal(start,end,pStart,pEnd);
+}
+
+// ---- Bloc MARQUE ----
+function renderBrand(start,end,pStart,pEnd){
+  if(!document.getElementById('bCA'))return;
+  var enrich=function(arr){return arr.map(function(r){
+    var nm=modelOf(r.name,r.cat);
+    var nc=normCat(r.cat);
+    // Détection reconditionnées : si le nom brut contient "reconditionn" → catégorie reconditionné
+    if(/reconditionn/i.test(r.name))nc='Machines à café reconditionnées';
+    return Object.assign({},r,{name:nm,brand:brandOf(r.name,r.cat),normCat:nc});
+  });};
+  var allRows=enrich(PROD.filter(function(r){return r.date>=start&&r.date<=end;}));
+  var prevRows=enrich(PROD.filter(function(r){return r.date>=pStart&&r.date<=pEnd;}));
+  var sel=catBrand==='tous'?allRows:allRows.filter(function(r){return r.brand===catBrand;});
+  var prev=catBrand==='tous'?prevRows:prevRows.filter(function(r){return r.brand===catBrand;});
+
+  var agg=function(rows){var m={};rows.forEach(function(r){var k=prodKey(r.name,r.cat);
+    if(!m[k])m[k]={n:r.name,ca:0,qty:0,seg:r.seg};m[k].ca+=r.ca;m[k].qty+=r.qty;});
+    return Object.keys(m).map(function(k){return m[k];});};
+  var prods=agg(sel),prodsPrev=agg(prev);
+  var ca=prods.reduce(function(s,p){return s+p.ca;},0);
+  var qty=prods.reduce(function(s,p){return s+p.qty;},0);
+  var pca=prodsPrev.reduce(function(s,p){return s+p.ca;},0);
+  var pqty=prodsPrev.reduce(function(s,p){return s+p.qty;},0);
+  $('bCA').textContent=eur(ca);   $('bCAd').innerHTML=deltaHtml(ca,pca)+' <span class="vp">vs préc.</span>';
+  $('bQty').textContent=num(qty); $('bQtyd').innerHTML=deltaHtml(qty,pqty)+' <span class="vp">vs préc.</span>';
+  $('bRef').textContent=prods.length; $('bRefd').innerHTML='<span class="muted">modèles distincts</span>';
+  $('bPM').textContent=eur(qty?ca/qty:0); $('bPMd').innerHTML=deltaHtml(qty?ca/qty:0,pqty?pca/pqty:0)+' <span class="vp">vs préc.</span>';
+  if(!sel.length){$('bRankCA').innerHTML=$('bRankQty').innerHTML='<div class="cat-empty">Aucun produit pour cette marque sur la période.</div>';return;}
+  var badge=function(s){return '<span class="pseg '+s.toLowerCase()+'">'+s+'</span>';};
+  var rk=function(arr,fn){return arr.map(function(p,i){return '<div class="catprow"><div class="catprk">'+(i+1)+'</div><div class="catpnm" title="'+p.n+'">'+p.n+badge(p.seg)+'</div><div class="catpval">'+fn(p)+'</div></div>';}).join('');};
+  $('bRankCA').innerHTML=rk(prods.slice().sort(function(a,b){return b.ca-a.ca;}).slice(0,10),function(p){return eur(p.ca);});
+  $('bRankQty').innerHTML=rk(prods.slice().sort(function(a,b){return b.qty-a.qty;}).slice(0,10),function(p){return num(p.qty)+' u.';});
+}
+
+// ---- Bloc CATÉGORIE ----
+function renderCatBloc(start,end,pStart,pEnd){
+  if(!document.getElementById('cCA'))return;
+  var enrich=function(arr){return arr.map(function(r){
+    var nm=modelOf(r.name,r.cat);
+    var nc=normCat(r.cat);
+    if(/reconditionn/i.test(r.name))nc='Machines à café reconditionnées';
+    return Object.assign({},r,{name:nm,brand:brandOf(r.name,r.cat),normCat:nc});
+  });};
+  var allRows=enrich(PROD.filter(function(r){return r.date>=start&&r.date<=end;}));
+  var prevRows=enrich(PROD.filter(function(r){return r.date>=pStart&&r.date<=pEnd;}));
+  var sel=catCat==='toutes'?allRows:allRows.filter(function(r){return r.normCat===catCat;});
+  var prev=catCat==='toutes'?prevRows:prevRows.filter(function(r){return r.normCat===catCat;});
+
+  var agg=function(rows){var m={};rows.forEach(function(r){var k=prodKey(r.name,r.cat);
+    if(!m[k])m[k]={n:r.name,ca:0,qty:0,seg:r.seg};m[k].ca+=r.ca;m[k].qty+=r.qty;});
+    return Object.keys(m).map(function(k){return m[k];});};
+  var prods=agg(sel),prodsPrev=agg(prev);
+  var ca=prods.reduce(function(s,p){return s+p.ca;},0);
+  var qty=prods.reduce(function(s,p){return s+p.qty;},0);
+  var pca=prodsPrev.reduce(function(s,p){return s+p.ca;},0);
+  var pqty=prodsPrev.reduce(function(s,p){return s+p.qty;},0);
+  $('cCA').textContent=eur(ca);   $('cCAd').innerHTML=deltaHtml(ca,pca)+' <span class="vp">vs préc.</span>';
+  $('cQty').textContent=num(qty); $('cQtyd').innerHTML=deltaHtml(qty,pqty)+' <span class="vp">vs préc.</span>';
+  $('cRef').textContent=prods.length; $('cRefd').innerHTML='<span class="muted">produits distincts</span>';
+  $('cPM').textContent=eur(qty?ca/qty:0); $('cPMd').innerHTML=deltaHtml(qty?ca/qty:0,pqty?pca/pqty:0)+' <span class="vp">vs préc.</span>';
+  if(!sel.length){$('cRankCA').innerHTML=$('cRankQty').innerHTML='<div class="cat-empty">Aucun produit pour cette catégorie sur la période.</div>';return;}
+  var badge=function(s){return '<span class="pseg '+s.toLowerCase()+'">'+s+'</span>';};
+  var rk=function(arr,fn){return arr.map(function(p,i){return '<div class="catprow"><div class="catprk">'+(i+1)+'</div><div class="catpnm" title="'+p.n+'">'+p.n+badge(p.seg)+'</div><div class="catpval">'+fn(p)+'</div></div>';}).join('');};
+  $('cRankCA').innerHTML=rk(prods.slice().sort(function(a,b){return b.ca-a.ca;}).slice(0,10),function(p){return eur(p.ca);});
+  $('cRankQty').innerHTML=rk(prods.slice().sort(function(a,b){return b.qty-a.qty;}).slice(0,10),function(p){return num(p.qty)+' u.';});
+}
+
+// ---- Bloc CANAL ----
+let catCanal='tous';
+function renderCanal(start,end,pStart,pEnd){
+  if(!document.getElementById('chCA'))return;
+  if(!$('selCanal')._init){
+    $('selCanal').addEventListener('change',function(){catCanal=this.value;renderCanal(catStart,catEnd,catPrevStart,catPrevEnd);});
+    $('selCanal')._init=true;
+  }
+  $('selCanal').value=catCanal;
+
+  // Vérifier si la colonne Canal est disponible (tous les produits ont 'Inconnu' → pas encore backfillé)
+  const allHasCanal=PROD.some(function(r){return r.canal&&r.canal!=='Inconnu';});
+  if(!allHasCanal){
+    $('canalNoCanalMsg').style.display='block';
+    $('canalContent').style.display='none';
+    return;
+  }
+  $('canalNoCanalMsg').style.display='none';
+  $('canalContent').style.display='block';
+
+  var enrich=function(arr){return arr.map(function(r){
+    var nm=modelOf(r.name,r.cat);
+    return Object.assign({},r,{name:nm,brand:brandOf(r.name,r.cat),normCat:normCat(r.cat)});
+  });};
+  var allRows=enrich(PROD.filter(function(r){return r.date>=start&&r.date<=end;}));
+  var prevRows=enrich(PROD.filter(function(r){return r.date>=pStart&&r.date<=pEnd;}));
+  var sel=catCanal==='tous'?allRows:allRows.filter(function(r){return r.canal===catCanal;});
+  var prev=catCanal==='tous'?prevRows:prevRows.filter(function(r){return r.canal===catCanal;});
+
+  var agg=function(rows){var m={};rows.forEach(function(r){var k=prodKey(r.name,r.cat);
+    if(!m[k])m[k]={n:r.name,ca:0,qty:0,seg:r.seg};m[k].ca+=r.ca;m[k].qty+=r.qty;});
+    return Object.keys(m).map(function(k){return m[k];});};
+  var prods=agg(sel),prodsPrev=agg(prev);
+  var ca=prods.reduce(function(s,p){return s+p.ca;},0);
+  var qty=prods.reduce(function(s,p){return s+p.qty;},0);
+  var pca=prodsPrev.reduce(function(s,p){return s+p.ca;},0);
+  var pqty=prodsPrev.reduce(function(s,p){return s+p.qty;},0);
+  var dataMatch=function(d){return catCanal==='tous'?true:d.canal===catCanal;};
+  var dataCA2=0,dataO2=0,pdataCA2=0,pdataO2=0;
+  DATA.filter(function(d){return d.date>=start&&d.date<=end&&dataMatch(d);}).forEach(function(d){dataCA2+=d.ca;dataO2+=d.commandes;});
+  DATA.filter(function(d){return d.date>=pStart&&d.date<=pEnd&&dataMatch(d);}).forEach(function(d){pdataCA2+=d.ca;pdataO2+=d.commandes;});
+  var pm2=dataO2?dataCA2/dataO2:0; var ppm2=pdataO2?pdataCA2/pdataO2:0;
+  $('chCA').textContent=eur2?eur2(dataCA2):eur(dataCA2); $('chCAd').innerHTML=deltaHtml(dataCA2,pdataCA2)+' <span class="vp">vs préc.</span>';
+  $('chQty').textContent=num(qty); $('chQtyd').innerHTML=deltaHtml(qty,pqty)+' <span class="vp">vs préc.</span>';
+  $('chRef').textContent=prods.length; $('chRefd').innerHTML='<span class="muted">modèles distincts</span>';
+  $('chPM').textContent=eur(qty?ca/qty:0); $('chPMd').innerHTML=deltaHtml(qty?ca/qty:0,pqty?pca/pqty:0)+' <span class="vp">vs préc.</span>';
+  if(!sel.length){$('chRankCA').innerHTML=$('chRankQty').innerHTML='<div class="cat-empty">Aucun produit pour ce canal sur la période.</div>';return;}
+  var badge=function(s){return '<span class="pseg '+s.toLowerCase()+'">'+s+'</span>';};
+  var rk=function(arr,fn){return arr.map(function(p,i){return '<div class="catprow"><div class="catprk">'+(i+1)+'</div><div class="catpnm" title="'+p.n+'">'+p.n+badge(p.seg)+'</div><div class="catpval">'+fn(p)+'</div></div>';}).join('');};
+  $('chRankCA').innerHTML=rk(prods.slice().sort(function(a,b){return b.ca-a.ca;}).slice(0,10),function(p){return eur(p.ca);});
+  $('chRankQty').innerHTML=rk(prods.slice().sort(function(a,b){return b.qty-a.qty;}).slice(0,10),function(p){return num(p.qty)+' u.';});
+}
+
+// ===================== MARKETPLACE =====================
+const MP_CHANNELS=[
+  {
+    key:'braam',
+    name:'Site Brâam',
+    sub:'Vente directe (SEO, SEA, Emailing, Direct…)',
+    logo:'https://atelierbraam.com/wp-content/uploads/2024/08/01-Logo-Braam-Vert-fonce.png',
+    color:'#025964',
+    bg:'#eaf4f4',
+    match:function(canal){return canal!=='Fnac/Darty'&&canal!=='Amazon';}
+  },
+  {
+    key:'fnac',
+    name:'Fnac / Darty',
+    sub:'Marketplace Fnac & Darty',
+    logo:'https://img.generation-nt.com/fnac-darty-logo_03E8025801674692.png',
+    color:'#d63b3b',
+    bg:'#fdf1ee',
+    match:function(canal){return canal==='Fnac/Darty';}
+  },
+  {
+    key:'amazon',
+    name:'Amazon',
+    sub:'Marketplace Amazon',
+    logo:'https://logos-world.net/wp-content/uploads/2020/04/Amazon-Logo.png',
+    color:'#ff9900',
+    bg:'#fff8ee',
+    match:function(canal){return canal==='Amazon';}
+  }
+];
+
+function renderMarketplace(start,end,pStart,pEnd){
+  const el=document.getElementById('mpGrid');
+  if(!el)return;
+
+  // Agrégation canaux (ventes)
+  const aggCanal=function(s,e){
+    const r={};
+    DATA.filter(function(d){return d.date>=s&&d.date<=e;}).forEach(function(d){
+      if(!r[d.canal])r[d.canal]={ca:0,orders:0};
+      r[d.canal].ca+=d.ca; r[d.canal].orders+=d.commandes;
+    });
+    return r;
+  };
+  const cur=aggCanal(start,end), prev=aggCanal(pStart,pEnd);
+  const totalCA=Object.values(cur).reduce(function(s,v){return s+v.ca;},0);
+
+  // Agrégation produits par canal
+  const aggProd=function(s,e,matchFn){
+    const m={};
+    PROD.filter(function(r){return r.date>=s&&r.date<=e&&matchFn(r.canal||'Inconnu');})
+      .forEach(function(r){
+        const k=modelOf(r.name,r.cat);
+        if(!m[k])m[k]={n:k,ca:0,qty:0};
+        m[k].ca+=r.ca; m[k].qty+=r.qty;
+      });
+    return Object.values(m).sort(function(a,b){return b.ca-a.ca;}).slice(0,5);
+  };
+
+  const hasCanalInProd=PROD.some(function(r){return r.canal&&r.canal!=='Inconnu';});
+
+  el.innerHTML=MP_CHANNELS.map(function(mp){
+    // KPIs ventes
+    var ca=0,orders=0,pca=0,porders=0;
+    Object.keys(cur).filter(mp.match).forEach(function(k){ca+=cur[k].ca;orders+=cur[k].orders;});
+    Object.keys(prev).filter(mp.match).forEach(function(k){pca+=prev[k].ca;porders+=prev[k].orders;});
+    var aov=orders?ca/orders:0, paov=porders?pca/porders:0;
+
+    var dCA=deltaHtml(ca,pca), dO=deltaHtml(orders,porders), dAOV=deltaHtml(aov,paov);
+    var kpiHtml=
+      '<div class="mpkpi"><div class="mk">CA</div><div class="mv">'+eur(ca)+'</div><div class="md">'+dCA+'</div></div>'+
+      '<div class="mpkpi"><div class="mk">Commandes</div><div class="mv">'+orders+'</div><div class="md">'+dO+'</div></div>'+
+      '<div class="mpkpi"><div class="mk">Panier moyen</div><div class="mv">'+eur(aov)+'</div><div class="md">'+dAOV+'</div></div>'+
+      '<div class="mpkpi"><div class="mk">Part du CA</div><div class="mv">'+(totalCA?Math.round(ca/totalCA*100):0)+' %</div><div class="md flat">de la période</div></div>';
+
+    // Top 5 produits
+    var topHtml='';
+    if(hasCanalInProd){
+      var tops=aggProd(start,end,mp.match);
+      topHtml=tops.length?tops.map(function(p,i){
+        return '<div class="mp-toprow"><div class="mp-rk">'+(i+1)+'</div>'+
+          '<div class="mp-nm" title="'+p.n+'">'+p.n+'</div>'+
+          '<div class="mp-vl">'+eur(p.ca)+'</div></div>';
+      }).join(''):'<div class="mp-empty">Aucun produit sur la période</div>';
+    } else {
+      topHtml='<div class="mp-empty" style="font-size:11px">Lance <b>backfill()</b> dans Apps Script Produits pour voir les produits par canal.</div>';
+    }
+
+    return '<div class="mpcard">'+
+      '<div class="mpcard-head" style="background:'+mp.bg+'">'+
+        '<img src="'+mp.logo+'" alt="'+mp.name+'" class="mp-logo" onerror="this.style.display=\'none\'">'+
+        '<div><div class="mp-name" style="color:'+mp.color+'">'+mp.name+'</div>'+
+        '<div class="mp-sub">'+mp.sub+'</div></div>'+
+      '</div>'+
+      '<div class="mpcard-body">'+
+        '<div class="mp-kpis">'+kpiHtml+'</div>'+
+        '<div class="mp-divider"></div>'+
+        '<div class="eyebrow" style="margin-bottom:8px">Top 5 produits · par CA</div>'+
+        '<div class="mp-toplist">'+topHtml+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  // Calcul total période pour la part du CA (on recalcule après avoir rendu)
+  var total=0;Object.values(cur).forEach(function(v){total+=v.ca;});
+  el.querySelectorAll('.mpkpi').forEach(function(kpi){
+    if(kpi.querySelector('.mk').textContent==='Part du CA'){
+      // déjà calculé dans le HTML — mais on recalcule proprement
+    }
+  });
+}
+
+function renderComparaison(){
+  if(!document.getElementById('cmpYears'))return;
+  const Y=today.getFullYear();
+  const fmt=(v,t)=>v==null?'—':(t==='eur'?eur(v):num(v));
+  const chip=(v,p,y)=>{ if(v==null||p==null||p===0)return '<div class="yc flat">—</div>';
+    const d=(v-p)/p*100,cls=d>=0?'up':'down'; return '<div class="yc '+cls+'">'+(d>=0?'▲ +':'▼ ')+Math.abs(d).toFixed(0)+' % vs '+y+'</div>'; };
+  const years=Object.keys(BILANS).map(Number).sort((a,b)=>b-a);
+  const PAL=[{a:'#025964',t:'#eef8f7'},{a:'#e8836f',t:'#fdf2ee'},{a:'#cf9a3f',t:'#fbf4e7'},{a:'#5fa48f',t:'#eef6f2'},{a:'#c07a92',t:'#f8eef1'}];
+  let html='';
+  years.forEach((y,idx)=>{
+    const col=PAL[idx%PAL.length];
+    const isCur=(y===Y);
+    let vals,baseline,note;
+    if(isCur){
+      const live=cumLive(y), prevYTD=cumLive(y-1), manual=BILANS[y]||{};
+      vals={ventes:live.ventes, net:manual.net||null, commandes:live.commandes, produits:live.produits, variations:manual.variations||null};
+      baseline={ventes:prevYTD.ventes, net:null, commandes:prevYTD.commandes, produits:prevYTD.produits, variations:null};
+      note='Année en cours au '+today.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+' · CA, commandes & produits en temps réel · ventes nettes & variations mises à jour manuellement depuis WooCommerce';
+    } else {
+      vals=BILANS[y]; baseline=BILANS[y-1]||null;
+      note='Année complète'+(baseline?' · variation vs '+(y-1):' · pas d\'année antérieure pour comparer');
+    }
+    let kpis='';
+    CMP_METRICS.forEach(m=>{
+      const v=vals[m[0]], p=baseline?baseline[m[0]]:null;
+      kpis+='<div class="ykpi"><div class="yl">'+m[1]+'</div><div class="yv">'+fmt(v,m[2])+'</div>'+chip(v,p,y-1)+'</div>';
+    });
+    html+='<div class="yearcard'+(isCur?' cur':'')+'" style="--acc:'+col.a+';--tint:'+col.t+'"><div class="yearhead"><span class="yr">'+y+'</span>'
+      +(isCur?'<span class="ylive">● en cours</span>':'')+'</div><div class="yearnote">'+note+'</div>'
+      +'<div class="ykpis">'+kpis+'</div></div>';
+  });
+  $('cmpYears').innerHTML=html;
+}
+const PROD_EMBED=`Date,Produit,Catégorie,Segment,Quantité,CA
+2026-06-08,Café en Grains Pur Arabica - 1Kg,Cafés de Spécialité,B2B,10,280
+2026-06-09,DeLonghi Dinamica FEB 3535,Machine à Café à Grains - B2C,B2C,1,"415,83"
+2026-06-10,La Main Noire - Purple Latte,Cabinet de curiosités,B2C,6,"84,72"`;
+const num=n=>Math.round(n).toLocaleString('fr-FR');
+function cleanName(s){return String(s).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();}
+
+// ── Normalisation des noms de cafés (anciens → nouveaux) ──────────────────
+// Correspondance établie lors du rebranding : anciens noms → nomenclature N°
+const CAFE_MAP = [
+  // N°1 · Le blend à la voile · Bio
+  {
+    nouveau: 'Café N°1 · Le blend à la voile · Bio',
+    regex: /Moka.*(É|E)thiopi|Moka.*Colombie|Bio.*Moka|(É|E)thiopi.*Moka/i
+  },
+  // N°2 · Le blend bio & équitable
+  {
+    nouveau: 'Café N°2 · Le blend bio & équitable',
+    regex: /Origine.*Ameri(q|c)ue du Sud|Ameri(q|c)ue.*Sud.*Bio|Bio.*Ameri(q|c)ue.*Sud|Bio.*Équitable.*Pérou|Pérou.*Mexique/i
+  },
+  // N°3 · Le blend petits producteurs
+  {
+    nouveau: 'Café N°3 · Le blend petits producteurs',
+    regex: /Petits Producteurs|Doux Petits/i
+  },
+  // N°4 · Le blend Expresso
+  {
+    nouveau: 'Café N°4 · Le blend Expresso',
+    regex: /Gran Crema|Espresso Gran|Corsé Espresso/i
+  },
+  // N°5 · Le blend signature (Arabica Amérique Latine / 100% Arabica Équilibré)
+  {
+    nouveau: 'Café N°5 · Le blend signature',
+    regex: /Arabica.*Amé?rique.*Latine|Pur Arabica.*Equitable|100%.*Arabica.*Équilibré|Arabica Équilibré/i
+  },
+  // N°00 · Le blend décaféiné
+  {
+    nouveau: 'Café N°00 · Le blend décaféiné',
+    regex: /Décaféiné|Decafein|N°00/i
+  },
+  // Coffret
+  {
+    nouveau: 'Coffret · Les 5 blends de l\'Atelier',
+    regex: /Coffret.*Autour.*Monde|Coffret.*5.*blend|Autour.*Monde.*5.*kg/i
+  }
+];
+
+// Garde la partie format (1kg / 250g / Grain / Moulu) pour différencier les SKUs
+function normalizeCafeName(name) {
+  // Ne normaliser que les cafés en grains/moulus (pas les accessoires, machines, etc.)
+  if (!/^café\s+(en\s+grain|N°)/i.test(name) && !/^coffret/i.test(name)) return name;
+
+  for (const {nouveau, regex} of CAFE_MAP) {
+    if (regex.test(name)) {
+      // Extraire le format (1kg, 250g, Grain, Moulu)
+      const fmt = name.match(/(\d+\s*kg|\d+\s*g)\s*[-·]?\s*(Grain|Moulu)?/gi);
+      const suffix = fmt ? ' · ' + fmt.map(f=>f.trim()).join(' ') : '';
+      return nouveau + suffix;
+    }
+  }
+  return name; // Pas de correspondance → garder tel quel (origines spéciales)
+}
+
+function parseProd(text){
+  const out=[],lines=String(text).trim().split(/\r?\n/);
+  // Détecte si l'en-tête contient "Canal" (7 colonnes) ou pas (6 colonnes ancien format)
+  const header=(lines[0]||'').toLowerCase();
+  const hasCanal=header.indexOf('canal')>-1;
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i];if(!line)continue;
+    const f=[];let cur='',q=false;
+    for(let j=0;j<line.length;j++){const ch=line[j];
+      if(ch==='"'){q=!q;continue;}
+      if(ch===','&&!q){f.push(cur);cur='';continue;}
+      cur+=ch;}
+    f.push(cur);
+    if(hasCanal){
+      if(f.length<7)continue;
+      // 7 colonnes : Date|Produit|Catégorie|Segment|Canal|Quantité|CA
+      out.push({date:f[0].trim(),name:normalizeCafeName(cleanName(f[1])),cat:cleanName(f[2]),
+        seg:(f[3].trim().toUpperCase()==='B2B')?'B2B':'B2C',
+        canal:f[4].trim()||'Inconnu',
+        qty:parseFloat(String(f[5]).replace(',','.'))||0,
+        ca:parseFloat(String(f[6]).replace(',','.'))||0});
+    } else {
+      if(f.length<6)continue;
+      // 6 colonnes ancien format (sans Canal)
+      out.push({date:f[0].trim(),name:normalizeCafeName(cleanName(f[1])),cat:cleanName(f[2]),
+        seg:(f[3].trim().toUpperCase()==='B2B')?'B2B':'B2C',
+        canal:'Inconnu',
+        qty:parseFloat(String(f[4]).replace(',','.'))||0,
+        ca:parseFloat(String(f[5]).replace(',','.'))||0});
+    }
+  }
+  return out;
+}
+function familyOf(cat){
+  const c=(cat||'').toLowerCase();
+  if(c.indexOf('machine')>-1||c.indexOf('cafeti')>-1)return 'Machines';
+  if(c.indexOf('café')>-1||c.indexOf('cafe')>-1)return 'Café en grains';
+  if(c.indexOf('thé')>-1||c.indexOf('the')>-1)return 'Thés & infusions';
+  if(c.indexOf('entretien')>-1)return 'Entretien';
+  if(c.indexOf('accessoire')>-1)return 'Accessoires';
+  if(c.indexOf('curiosit')>-1)return 'Épicerie fine';
+  return 'Autres';
+}
+const FAMCOLOR={'Machines':'#025964','Café en grains':'#d99a5b','Accessoires':'#6fae9c',
+  'Entretien':'#cf8fa0','Thés & infusions':'#7a4b63','Épicerie fine':'#f6a194','Autres':'#9aa0a6'};
+
+// Regroupe par MODÈLE : on ignore la garantie ET la couleur.
+// Ex : "DeLonghi Rivelia Latte - Garantie 5 ans - Beige Sable"
+//   et "DeLonghi Rivelia Latte - Noir"  →  "DeLonghi Rivelia Latte"
+// Les poids (ex. "1Kg", "250g") sont CONSERVÉS (café), pas fusionnés.
+const PCOLORS=['beige sable','beige','sable','dark inox','inox foncé','inox','noir','noire',
+  'blanc','blanche','gris foncé','gris','grise','argent satiné','argenté','argent','silver',
+  'titane','titanium','anthracite','rouge','bordeaux','bleu nuit','bleu','chrome',
+  'acier brossé','acier','platine','ivoire','champagne','bronze','cuivre','rose gold','metal','métal'];
+function deacc(s){return String(s).toLowerCase()
+  .replace(/[\u2018\u2019\u201a\u201b\u2032\u2035]/g,"'")  // apostrophes typographiques → '
+  .replace(/[\u2013\u2014\u2015]/g,'-')                     // tirets en/em → -
+  .replace(/[\u00a0\u202f\u200b]/g,' ')                     // espaces spéciaux → espace
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'')          // supprimer les accents
+  .replace(/\s+/g,' ').trim();}
+function isColor(seg){const s=deacc(seg);return PCOLORS.some(c=>deacc(c)===s);}
+function stripVariant(s){
+  return String(s)
+    .replace(/[\u200e\u200f\u00a0\u2068\u2069]/g,' ')   // marques invisibles
+    .replace(/garantie\s*\d+\s*an(s)?/gi,'')            // "Garantie X ans"
+    .replace(/(\s*[-–—]\s*){2,}/g,' - ')                // recolle les tirets orphelins
+    .replace(/\s*[-–—]\s*$/,'').replace(/^\s*[-–—]\s*/,'')
+    .replace(/\s{2,}/g,' ').trim();
+}
+// Renommages manuels (même machine, deux noms différents) : "ancien":"Nom de référence"
+const ALIASES={
+  // "delonghi rivelia latte":"DeLonghi Rivelia Latte",
+};
+function modelOf(name,cat){
+  const clean=stripVariant(name);
+  // Machines : le modèle = tout ce qui précède le 1er tiret (couleur/garantie viennent après).
+  if(familyOf(cat)==='Machines'){
+    const parts=clean.split(/\s*[-–—]\s*/).map(p=>p.trim()).filter(p=>p.length);
+    let out=parts.length?parts[0]:clean;
+    // couleur éventuellement collée sans tiret (ex. "Jura W4 Dark Inox")
+    PCOLORS.slice().sort((a,b)=>b.length-a.length).some(c=>{
+      const re=new RegExp('\\s+'+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$','i');
+      if(re.test(out)){out=out.replace(re,'').trim();return true;}return false;});
+    return out;
+  }
+  // Café, accessoires, etc. : on garde le format/poids, on retire juste les couleurs connues en fin.
+  const parts=clean.split(/\s*[-–—]\s*/).map(p=>p.trim()).filter(p=>p.length);
+  const kept=parts.filter((p,i)=>i===0||!isColor(p));
+  return kept.join(' - ');
+}
+// Clé "souple" : ignore casse, accents ET ponctuation (tirets, &, apostrophes, espaces).
+// Ainsi "Moka d'Éthiopie & Colombie - 1kg" et "Moka d'Ethiopie Colombie 1kg" → même produit.
+function normKey(s){return deacc(s).replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+function prodKey(name,cat){const base=normKey(modelOf(name,cat));return ALIASES[base]?normKey(ALIASES[base]):base;}
+
+
+function renderProduits(start,end,pStart,pEnd){
+  const sel=PROD.filter(r=>r.date>=start&&r.date<=end);
+  const prev=PROD.filter(r=>r.date>=pStart&&r.date<=pEnd);
+  const sumCA=a=>a.reduce((s,r)=>s+r.ca,0), sumQ=a=>a.reduce((s,r)=>s+r.qty,0);
+  const ca=sumCA(sel),qty=sumQ(sel),refs=new Set(sel.map(r=>prodKey(r.name,r.cat))).size,pu=qty?ca/qty:0;
+  const pca=sumCA(prev),pq=sumQ(prev),pref=new Set(prev.map(r=>prodKey(r.name,r.cat))).size,ppu=pq?pca/pq:0;
+  $('pCA').textContent=eur(ca); $('pCAd').innerHTML=deltaHtml(ca,pca)+' <span class="vp">vs préc.</span>';
+  $('pQty').textContent=num(qty); $('pQtyd').innerHTML=deltaHtml(qty,pq)+' <span class="vp">vs préc.</span>';
+  $('pRef').textContent=refs; $('pRefd').innerHTML=deltaHtml(refs,pref)+' <span class="vp">vs préc.</span>';
+  $('pPU').textContent=eur(pu); $('pPUd').innerHTML=deltaHtml(pu,ppu)+' <span class="vp">vs préc.</span>';
+
+  const seg={B2C:{ca:0,qty:0},B2B:{ca:0,qty:0}};
+  sel.forEach(r=>{seg[r.seg].ca+=r.ca;seg[r.seg].qty+=r.qty;});
+  const sd={labels:['Particuliers (B2C)','Professionnels (B2B)'],
+    datasets:[{data:[seg.B2C.ca,seg.B2B.ca],backgroundColor:['#f6a194','#025964'],borderColor:'#fff',borderWidth:3,hoverOffset:6}]};
+  if(segChart){segChart.data=sd;segChart.update();}
+  else segChart=new Chart($('segDonut'),{type:'doughnut',data:sd,options:{maintainAspectRatio:false,cutout:'64%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+' : '+eur(c.parsed)+' ('+(ca?c.parsed/ca*100:0).toFixed(0)+' %)'}}}}});
+  const pc=s=>ca?(seg[s].ca/ca*100).toFixed(0):0;
+  $('segCards').innerHTML=
+    '<div class="segcard b2c"><div class="sct"><span class="dot" style="background:var(--coral)"></span>Particuliers · B2C</div><div class="scv">'+eur(seg.B2C.ca)+'</div><div class="scs">'+pc('B2C')+' % du CA · '+num(seg.B2C.qty)+' unités</div></div>'
+    +'<div class="segcard b2b"><div class="sct"><span class="dot" style="background:var(--teal)"></span>Professionnels · B2B</div><div class="scv">'+eur(seg.B2B.ca)+'</div><div class="scs">'+pc('B2B')+' % du CA · '+num(seg.B2B.qty)+' unités</div></div>';
+
+  const fam={};sel.forEach(r=>{const f=familyOf(r.cat);fam[f]=(fam[f]||0)+r.ca;});
+  const famArr=Object.keys(fam).map(f=>({f,ca:fam[f]})).sort((a,b)=>b.ca-a.ca);
+  const fmx=Math.max(1,...famArr.map(a=>a.ca));
+  $('families').innerHTML=famArr.map(a=>{const col=FAMCOLOR[a.f]||'#9aa0a6',sh=ca?(a.ca/ca*100).toFixed(1).replace('.',','):0;
+    return '<div class="famrow"><div class="fl"><span class="dot" style="background:'+col+'"></span>'+a.f+'</div>'
+      +'<div><div class="barwrap"><div class="bar" style="width:'+(a.ca/fmx*100).toFixed(1)+'%;background:'+col+'"></div></div><div class="fsub">'+sh+' % du CA produits</div></div>'
+      +'<div class="ca">'+eur(a.ca)+'</div></div>';}).join('')||'<div class="muted">Aucune vente sur la période.</div>';
+
+  const m={};sel.forEach(r=>{const k=prodKey(r.name,r.cat);if(!m[k])m[k]={n:modelOf(r.name,r.cat),ca:0,qty:0,seg:r.seg,fam:familyOf(r.cat)};m[k].ca+=r.ca;m[k].qty+=r.qty;});
+  const prods=Object.keys(m).map(k=>m[k]);
+  const selWithFam=sel.map(r=>({...r,fam:familyOf(r.cat),name:modelOf(r.name,r.cat)}));
+  const badge=s=>'<span class="pseg '+s.toLowerCase()+'">'+s+'</span>';
+  const renderRank=(arr,valFn)=>arr.map((p,i)=>'<div class="prow"><div class="prk">'+(i+1)+'</div>'
+    +'<div class="pnm" title="'+p.n.replace(/"/g,'')+'">'+p.n+badge(p.seg)+'</div>'
+    +'<div class="pval">'+valFn(p)+'</div></div>').join('')||'<div class="muted">—</div>';
+  const topCA=prods.slice().sort((a,b)=>b.ca-a.ca).slice(0,10);
+  const topQ=prods.slice().sort((a,b)=>b.qty-a.qty).slice(0,10);
+  const topMach=prods.filter(p=>p.fam==='Machines').sort((a,b)=>b.qty-a.qty).slice(0,10);
+  const topCafe=prods.filter(p=>p.fam==='Café en grains').sort((a,b)=>b.qty-a.qty).slice(0,10);
+  $('rankCA').innerHTML=renderRank(topCA,p=>eur(p.ca));
+  $('rankCmd').innerHTML=renderRank(topQ,p=>num(p.qty)+' u.');
+  $('rankMachines').innerHTML=renderRank(topMach,p=>num(p.qty)+' u.');
+  $('rankCafe').innerHTML=renderRank(topCafe,p=>num(p.qty)+' u.');
+
+  // Blocs marques : DeLonghi / Jura
+  const isBrand=(name,brand)=>name.toLowerCase().indexOf(brand.toLowerCase())>-1;
+  const brands=[
+    {key:'delonghi',label:"De'Longhi",cls:'delonghi',sub:'Machines DeLonghi'},
+    {key:'jura',label:'Jura',cls:'jura',sub:'Machines Jura'}
+  ];
+  const brandHtml=brands.map(b=>{
+    const rows=selWithFam.filter(r=>r.fam==='Machines'&&isBrand(r.name,b.key==='delonghi'?'delonghi':'jura'));
+    const bca=rows.reduce((s,r)=>s+r.ca,0);
+    const bqty=rows.reduce((s,r)=>s+r.qty,0);
+    const refs=new Set(rows.map(r=>r.name)).size;
+    const mAgg={};rows.forEach(r=>{if(!mAgg[r.name])mAgg[r.name]={ca:0,qty:0};mAgg[r.name].ca+=r.ca;mAgg[r.name].qty+=r.qty;});
+    const top=Object.keys(mAgg).map(n=>({n,ca:mAgg[n].ca,qty:mAgg[n].qty})).sort((a,x)=>x.ca-a.ca)[0];
+    return '<div class="brandcard '+b.key+'-card">'
+      +'<div class="bhead"><span class="blogo '+b.cls+'">'+b.label+'</span>'
+      +'<span class="bsub">'+b.sub+'</span></div>'
+      +'<div class="bkpis">'
+      +'<div class="brandkpi"><div class="bl">Chiffre d\'affaires</div><div class="bv">'+eur(bca)+'</div>'
+      +(ca?'<div class="bs">'+(bca/ca*100).toFixed(0)+' % du CA produits</div>':'')+'</div>'
+      +'<div class="brandkpi"><div class="bl">Unités vendues</div><div class="bv">'+num(bqty)+'</div>'
+      +'<div class="bs">'+refs+' modèle'+(refs>1?'s':'')+' distinct'+(refs>1?'s':'')+'</div></div>'
+      +'<div class="brandkpi"><div class="bl">Panier moyen</div><div class="bv">'+eur(bqty?bca/bqty:0)+'</div>'
+      +'<div class="bs">par machine vendue</div></div>'
+      +'<div class="brandkpi"><div class="bl">Modèle star</div>'
+      +'<div class="bv" style="font-size:15px;line-height:1.25;margin-top:5px">'+(top?top.n:'—')+'</div>'
+      +(top?'<div class="bs">'+eur(top.ca)+'</div>':'')+'</div>'
+      +'</div></div>';
+  }).join('');
+  $('brandCards').innerHTML=brandHtml;
+
+  const out=[];
+  if(sel.length){
+    out.push('Le <b>B2B</b> pèse '+pc('B2B')+' % du CA produits — porté par le café en grains récurrent, à faible panier unitaire.');
+    if(famArr[0])out.push('Famille n°1 : <b>'+famArr[0].f+'</b> ('+(ca?(famArr[0].ca/ca*100).toFixed(0):0)+' % du CA produits).');
+    if(topCA[0])out.push('Plus gros CA : <b>'+topCA[0].n+'</b> ('+eur(topCA[0].ca)+').');
+    if(topQ[0])out.push('Le plus commandé : <b>'+topQ[0].n+'</b> ('+num(topQ[0].qty)+' unités).');
+  } else out.push('Aucune vente produit sur la période sélectionnée.');
+  $('pInsights').innerHTML=out.slice(0,4).map(t=>'<li>'+t+'</li>').join('');
+}
+
+// ===================== NAVIGATION ONGLETS =====================
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.style.display=p.id===id?'block':'none');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.p===id));
+  const per=(id==='pg-overview'||id==='pg-canaux'||id==='pg-produits'||id==='pg-catalogue'||id==='pg-marketplace');
+  $('controls').style.display=per?'flex':'none';
+  $('plbl').style.display=per?'block':'none';
+  setTimeout(()=>{
+    if(id==='pg-canaux'){const cr=$('canalRange'),or2=$('ordersRange');buildCAChart(cr?cr.value:'tout');buildOrdersChart(or2?or2.value:'30j');}
+    if(id==='pg-tendances') buildSaison();
+    [donutChart,caChart,ordersChart,saisonChart,segChart,prodEvoChart].forEach(ch=>{try{if(ch)ch.resize();}catch(e){}});
+  },60);
+}
+
+// ===================== INTERACTIONS =====================
+let today=new Date(); // recalé sur la dernière date des données dans init()
+function preset(k){
+  const end=today;let start;
+  if(k==='aujourdhui')start=end;
+  else if(k==='7j')start=addDays(end,-6);
+  else if(k==='30j')start=addDays(end,-29);
+  else if(k==='mois')start=new Date(end.getFullYear(),end.getMonth(),1);
+  else if(k==='moisdernier'){const s=new Date(end.getFullYear(),end.getMonth()-1,1);
+    const e=new Date(end.getFullYear(),end.getMonth(),0);return setRange(toStr(s),toStr(e),k);}
+  else if(k==='trimestre')start=new Date(end.getFullYear(),Math.floor(end.getMonth()/3)*3,1);
+  else if(k==='semestre')start=new Date(end.getFullYear(),end.getMonth()<6?0:6,1);
+  else if(k==='annee')start=new Date(end.getFullYear(),0,1);
+  else if(k==='12mois')start=addDays(end,-364);
+  else return;
+  setRange(toStr(start),toStr(end),k);
+}
+function setRange(s,e,key){$('d1').value=s;$('d2').value=e;$('periodSelect').value=key||'perso';render(s,e);}
+$('periodSelect').addEventListener('change',e=>{
+  if(e.target.value==='perso'){const s=$('d1').value,e2=$('d2').value;if(s&&e2&&s<=e2)render(s,e2);}
+  else preset(e.target.value);});
+['d1','d2'].forEach(id=>$(id).addEventListener('change',()=>{
+  const s=$('d1').value,e=$('d2').value;if(s&&e&&s<=e){$('periodSelect').value='perso';render(s,e);}}));
+$('caRange').addEventListener('change',e=>buildCAChart(e.target.value));
+$('ordersRange').addEventListener('change',e=>buildOrdersChart(e.target.value));
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>showPage(t.dataset.p)));
+
+// ===================== INIT =====================
+async function init(){
+  let text=CSV_EMBED,live=false;
+  if(CONFIG.CSV_URL){try{const r=await fetch(CONFIG.CSV_URL,{cache:'no-store'});if(r.ok){const t=await r.text();const head=(t||'').split(/\r?\n/)[0]||'';if(head.indexOf('Canal')>-1){text=t;live=true;}}}catch(e){}}
+  DATA=parseCSV(text).sort((a,b)=>a.date<b.date?-1:1);
+  let ptext=PROD_EMBED;
+  if(CONFIG.CSV_PRODUITS){try{const r=await fetch(CONFIG.CSV_PRODUITS,{cache:'no-store'});if(r.ok){const t=await r.text();const head=(t||'').split(/\r?\n/)[0]||'';if(head.indexOf('Produit')>-1){ptext=t;}}}catch(e){}}
+  PROD=parseProd(ptext).sort((a,b)=>a.date<b.date?-1:1);
+  const lastV=DATA.length?DATA[DATA.length-1].date:null;
+  const lastP=PROD.length?PROD[PROD.length-1].date:null;
+  const lastAll=[lastV,lastP].filter(Boolean).sort().pop();
+  today=lastAll?parseD(lastAll):new Date();
+  const last=lastAll;
+  $('src').textContent=(live?'en direct':'⚠ pas de connexion')+(last?' · au '+parseD(last).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'');
+  if(live)$('src').classList.add('live');
+  renderYoY();renderFacts();
+  // Projection fin d'année
+  (function(){
+    const pb=$('projBlock'); if(!pb) return;
+    const y=today.getFullYear();
+    const soy=new Date(y,0,1);
+    const daysElapsed=Math.max(1,Math.floor((today-soy)/864e5)+1);
+    const daysInYear=((y%4===0&&y%100!==0)||y%400===0)?366:365;
+    const daysLeft=daysInYear-daysElapsed;
+    const caYTD=DATA.filter(r=>parseD(r.date).getFullYear()===y).reduce((s,r)=>s+r.ca,0);
+    if(!caYTD){pb.style.display='none';return;}
+    const ratePerDay=caYTD/daysElapsed;
+    const proj=caYTD+ratePerDay*daysLeft;
+    $('projVal').textContent=eur(proj);
+    $('projRate').textContent=eur(Math.round(ratePerDay));
+    $('projNote').textContent='basé sur '+daysElapsed+' jours · '+daysLeft+' jours restants';
+    pb.style.display='block';
+  })();
+  buildCAChart('tout');buildOrdersChart('30j');buildSaison();
+  renderComparaison();
+  $('periodSelect').value='30j';preset('30j');
+  showPage('pg-overview');
+}
+init();
+
+function applyTheme(dark){
+  if(dark) document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  const icon=$('ttIcon'),label=$('ttLabel'),track=$('ttTrack');
+  if(icon)icon.textContent=dark?'☀️':'🌙';
+  if(label)label.textContent=dark?'Mode clair':'Mode sombre';
+  if(track)track.classList.toggle('on',dark);
+  setTimeout(()=>{const isDark=document.documentElement.hasAttribute('data-theme');
+    const grid=isDark?'#25403e':'#ecdfd5';const tick=isDark?'#6e6660':'#94887f';
+    const lbl=isDark?'#e8e2db':'#2a3c3f';
+    [caChart,ordersChart,saisonChart].forEach(ch=>{if(!ch)return;
+      const sc=ch.options.scales;
+      if(sc)Object.values(sc).forEach(ax=>{if(ax.grid)ax.grid.color=grid;if(ax.ticks)ax.ticks.color=tick;});
+      if(ch.options.plugins?.legend)ch.options.plugins.legend.labels.color=lbl;
+      ch.update('none');});},50);
+  try{localStorage.setItem('braam-theme',dark?'dark':'light');}catch(e){}
+}
+function toggleTheme(){applyTheme(!document.documentElement.hasAttribute('data-theme'));}
+(function(){try{if(localStorage.getItem('braam-theme')==='dark')applyTheme(true);}catch(e){}})();
+</script>
